@@ -236,7 +236,7 @@ defmodule OtelMetricExporter.MetricStore do
       end)
       |> Map.merge(acc, fn _k, v1, v2 -> v2 ++ v1 end)
     end)
-    |> Enum.map(fn {{type, name}, tagged_values} ->
+    |> Enum.flat_map(fn {{type, name}, tagged_values} ->
       metric =
         Enum.find(state.metrics, &(Enum.join(&1.name, ".") == name and metric_type(&1) == type))
 
@@ -307,90 +307,89 @@ defmodule OtelMetricExporter.MetricStore do
          %{name: name, description: description, unit: unit} = metric,
          values
        ) do
-    %Metric{
-      name: Enum.join(name, "."),
-      description: description,
-      unit: convert_unit(unit),
-      data: convert_data(metric, values)
-    }
+    Enum.map(values, fn {{from, to}, tags, value} ->
+      suffix = tags |> Enum.sort() |> Enum.map(fn {_k, v} -> v end)
+
+      %Metric{
+        name: Enum.join(name ++ suffix, "."),
+        description: description,
+        unit: convert_unit(unit),
+        data: convert_data(metric, from, to, value)
+      }
+    end)
   end
 
-  defp convert_data(%Metrics.Counter{}, values) do
+  defp convert_data(%Metrics.Counter{}, from, to, value) do
     {:sum,
      %Sum{
-       data_points:
-         Enum.map(values, fn {{from, to}, tags, value} ->
-           %NumberDataPoint{
-             attributes: build_kv(tags),
-             start_time_unix_nano: from,
-             time_unix_nano: to,
-             value: {:as_int, value}
-           }
-         end),
+       data_points: [
+         %NumberDataPoint{
+           attributes: [],
+           start_time_unix_nano: from,
+           time_unix_nano: to,
+           value: {:as_int, value}
+         }
+       ],
        aggregation_temporality: :AGGREGATION_TEMPORALITY_CUMULATIVE,
        is_monotonic: true
      }}
   end
 
-  defp convert_data(%Metrics.Sum{}, values) do
+  defp convert_data(%Metrics.Sum{}, from, to, value) do
     {:sum,
      %Sum{
-       data_points:
-         Enum.map(values, fn {{from, to}, tags, value} ->
-           %NumberDataPoint{
-             attributes: build_kv(tags),
-             start_time_unix_nano: from,
-             time_unix_nano: to,
-             value: {:as_int, value}
-           }
-         end),
+       data_points: [
+         %NumberDataPoint{
+           attributes: [],
+           start_time_unix_nano: from,
+           time_unix_nano: to,
+           value: {:as_int, value}
+         }
+       ],
        aggregation_temporality: :AGGREGATION_TEMPORALITY_CUMULATIVE,
        is_monotonic: false
      }}
   end
 
-  defp convert_data(%Metrics.LastValue{}, values) do
+  defp convert_data(%Metrics.LastValue{}, from, to, value) do
     {:gauge,
      %Gauge{
-       data_points:
-         Enum.map(values, fn {{from, to}, tags, value} ->
-           %NumberDataPoint{
-             attributes: build_kv(tags),
-             start_time_unix_nano: from,
-             time_unix_nano: to,
-             value: {:as_double, value}
-           }
-         end)
+       data_points: [
+         %NumberDataPoint{
+           attributes: [],
+           start_time_unix_nano: from,
+           time_unix_nano: to,
+           value: {:as_double, value}
+         }
+       ]
      }}
   end
 
-  defp convert_data(%Metrics.Distribution{reporter_options: opts}, values) do
+  defp convert_data(%Metrics.Distribution{reporter_options: opts}, from, to, bucket_values) do
     bucket_bounds = Keyword.get(opts, :buckets, @default_buckets)
     total_bucket_bounds = length(bucket_bounds)
 
+    {total_count, total_sum} =
+      Enum.reduce(bucket_values, {0, 0.0}, fn {_, {count, sum}}, {total_count, total_sum} ->
+        {total_count + count, total_sum + sum}
+      end)
+
+    bucket_counts =
+      Enum.map(0..total_bucket_bounds//1, &elem(Map.get(bucket_values, &1, {0, 0}), 0))
+
     {:histogram,
      %Histogram{
-       data_points:
-         Enum.map(values, fn {{from, to}, tags, bucket_values} ->
-           {total_count, total_sum} =
-             Enum.reduce(bucket_values, {0, 0.0}, fn {_, {count, sum}},
-                                                     {total_count, total_sum} ->
-               {total_count + count, total_sum + sum}
-             end)
-
-           bucket_counts =
-             Enum.map(0..total_bucket_bounds//1, &elem(Map.get(bucket_values, &1, {0, 0}), 0))
-
-           %HistogramDataPoint{
-             attributes: build_kv(tags),
-             start_time_unix_nano: from,
-             time_unix_nano: to,
-             count: total_count,
-             sum: total_sum,
-             bucket_counts: bucket_counts,
-             explicit_bounds: bucket_bounds
-           }
-         end),
+       data_points: [
+         %HistogramDataPoint{
+           attributes: [],
+           start_time_unix_nano: from,
+           time_unix_nano: to,
+           count: total_count,
+           sum: total_sum,
+           bucket_counts: bucket_counts,
+           explicit_bounds: bucket_bounds
+         }
+       ],
        aggregation_temporality: :AGGREGATION_TEMPORALITY_CUMULATIVE
      }}
   end

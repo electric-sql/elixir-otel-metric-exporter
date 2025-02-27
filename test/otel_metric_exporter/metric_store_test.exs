@@ -207,10 +207,11 @@ defmodule OtelMetricExporter.MetricStoreTest do
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         metrics = ExportMetricsServiceRequest.decode(body)
 
-        # Verify that we have one metric with sum = 3 (1 from first generation + 2 from second)
-        assert [%{scope_metrics: [%{metrics: [metric]}]}] = metrics.resource_metrics
+        # Verify that we have two metrics with sum = 3 (1 from first generation + 2 from second)
+        assert [%{scope_metrics: [%{metrics: [metric1, metric2]}]}] = metrics.resource_metrics
 
-        assert {:sum, %{data_points: [point1, point2]}} = metric.data
+        assert {:sum, %{data_points: [point1]}} = metric1.data
+        assert {:sum, %{data_points: [point2]}} = metric2.data
         assert {:as_int, 1} = point1.value
         assert {:as_int, 2} = point2.value
 
