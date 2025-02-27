@@ -1,6 +1,7 @@
 defmodule OtelMetricExporter do
   use Supervisor
   require Logger
+  alias OtelMetricExporter.OtelApi
   alias OtelMetricExporter.MetricStore
   alias Telemetry.Metrics
 
@@ -44,55 +45,25 @@ defmodule OtelMetricExporter do
   ]
 
   @options_schema NimbleOptions.new!(
-                    metrics: [
-                      type: {:list, {:or, for(x <- @supported_metrics, do: {:struct, x})}},
-                      type_spec: quote(do: list(Metrics.t())),
-                      required: true,
-                      doc: "List of telemetry metrics to track."
-                    ],
-                    otlp_endpoint: [
-                      type: :string,
-                      required: true,
-                      subsection: "OTLP transport",
-                      doc: "Endpoint to send metrics to."
-                    ],
-                    otlp_protocol: [
-                      type: {:in, [:http_protobuf]},
-                      type_spec: quote(do: protocol()),
-                      default: :http_protobuf,
-                      subsection: "OTLP transport",
-                      doc:
-                        "Protocol to use for OTLP export. Currently only :http_protobuf and :http_json are supported."
-                    ],
-                    otlp_headers: [
-                      type: {:map, :string, :string},
-                      default: %{},
-                      subsection: "OTLP transport",
-                      doc: "Headers to send with OTLP requests."
-                    ],
-                    otlp_compression: [
-                      type: {:in, [:gzip, nil]},
-                      default: :gzip,
-                      type_spec: quote(do: compression()),
-                      subsection: "OTLP transport",
-                      doc:
-                        "Compression to use for OTLP requests. Allowed values are `:gzip` and `nil`."
-                    ],
-                    resource: [
-                      type: :map,
-                      default: %{},
-                      doc: "Resource attributes to send with metrics."
-                    ],
-                    export_period: [
-                      type: :pos_integer,
-                      default: :timer.minutes(1),
-                      doc: "Period in milliseconds between metric exports."
-                    ],
-                    name: [
-                      type: :atom,
-                      default: :otel_metric_exporter,
-                      doc: "If you require multiple exporters, give each exporter a unique name."
-                    ]
+                    [
+                      metrics: [
+                        type: {:list, {:or, for(x <- @supported_metrics, do: {:struct, x})}},
+                        type_spec: quote(do: list(Metrics.t())),
+                        required: true,
+                        doc: "List of telemetry metrics to track."
+                      ],
+                      export_period: [
+                        type: :pos_integer,
+                        default: :timer.minutes(1),
+                        doc: "Period in milliseconds between metric exports."
+                      ],
+                      name: [
+                        type: :atom,
+                        default: :otel_metric_exporter,
+                        doc:
+                          "If you require multiple exporters, give each exporter a unique name."
+                      ]
+                    ] ++ OtelApi.public_options()
                   )
 
   @type option() :: unquote(NimbleOptions.option_typespec(@options_schema))

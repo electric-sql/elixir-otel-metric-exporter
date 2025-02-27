@@ -6,11 +6,8 @@ defmodule OtelMetricExporter.MetricStore do
   require Logger
 
   alias Telemetry.Metrics
-  alias OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest
 
   alias OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.{
-    ResourceMetrics,
-    ScopeMetrics,
     Metric,
     NumberDataPoint,
     HistogramDataPoint,
@@ -19,25 +16,19 @@ defmodule OtelMetricExporter.MetricStore do
     Histogram
   }
 
-  alias OtelMetricExporter.Opentelemetry.Proto.Common.V1.{
-    InstrumentationScope,
-    AnyValue,
-    KeyValue,
-    KeyValueList,
-    ArrayValue
-  }
+  alias OtelMetricExporter.OtelApi
 
-  alias OtelMetricExporter.Opentelemetry.Proto.Resource.V1.Resource
+  import OtelMetricExporter.OtlpUtils, only: [build_kv: 1]
 
   @default_buckets [0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000]
 
   defmodule State do
     @moduledoc false
-    defstruct [:config, :finch_pool, :metrics, :metrics_table, :last_export, :generations_table]
+    defstruct [:config, :api, :metrics, :metrics_table, :last_export, :generations_table]
 
     @type t :: %__MODULE__{
             config: map(),
-            finch_pool: module(),
+            api: struct(),
             metrics: list(),
             metrics_table: atom(),
             generations_table: :ets.tid(),
@@ -147,14 +138,16 @@ defmodule OtelMetricExporter.MetricStore do
     :ets.insert(generations_table, {0, System.system_time(:nanosecond), 0})
     :persistent_term.put(generation_key(metrics_table), 0)
 
-    {:ok,
-     %State{
-       config: config,
-       finch_pool: finch_pool,
-       metrics: metrics,
-       metrics_table: metrics_table,
-       generations_table: generations_table
-     }}
+    with {:ok, api, config} <- OtelApi.new(Map.put(config, :finch, finch_pool)) do
+      {:ok,
+       %State{
+         config: config,
+         api: api,
+         metrics: metrics,
+         metrics_table: metrics_table,
+         generations_table: generations_table
+       }}
+    end
   end
 
   @impl true
@@ -180,27 +173,6 @@ defmodule OtelMetricExporter.MetricStore do
         {:noreply, state}
     end
   end
-
-  defp build_kv(tags) do
-    Enum.map(tags, fn {key, value} ->
-      %KeyValue{
-        key: to_string(key),
-        value: %AnyValue{value: to_kv_value(value)}
-      }
-    end)
-  end
-
-  defp to_kv_value(value) when is_binary(value), do: {:string_value, value}
-  defp to_kv_value(value) when is_integer(value), do: {:int_value, value}
-  defp to_kv_value(value) when is_float(value), do: {:double_value, value}
-  defp to_kv_value(value) when is_boolean(value), do: {:bool_value, value}
-  defp to_kv_value(value) when is_struct(value), do: {:string_value, to_string(value)}
-
-  defp to_kv_value(value) when is_list(value),
-    do: {:array_value, %ArrayValue{values: Enum.map(value, &%AnyValue{value: to_kv_value(&1)})}}
-
-  defp to_kv_value(value) when is_map(value),
-    do: {:kvlist_value, %KeyValueList{values: build_kv(value)}}
 
   defp rotate_generation(%State{} = state) do
     current_gen = :persistent_term.get(generation_key(state.metrics_table))
@@ -242,7 +214,7 @@ defmodule OtelMetricExporter.MetricStore do
 
       convert_metric(metric, tagged_values)
     end)
-    |> do_export_metrics(state)
+    |> then(&OtelApi.send_metrics(state.api, &1))
     |> case do
       :ok ->
         # Clear exported metrics
@@ -255,50 +227,6 @@ defmodule OtelMetricExporter.MetricStore do
 
       {:error, reason} ->
         Logger.error("Failed to export metrics: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
-
-  defp do_export_metrics(metrics, %State{} = state) do
-    request = %ExportMetricsServiceRequest{
-      resource_metrics: [
-        %ResourceMetrics{
-          resource: %Resource{attributes: build_kv(state.config.resource)},
-          scope_metrics: [
-            %ScopeMetrics{
-              scope: %InstrumentationScope{name: "otel_metric_exporter"},
-              metrics: metrics
-            }
-          ]
-        }
-      ]
-    }
-
-    headers =
-      Map.merge(
-        %{
-          "content-type" => "application/x-protobuf",
-          "accept" => "application/x-protobuf"
-        },
-        state.config.otlp_headers
-      )
-
-    request_body = ExportMetricsServiceRequest.encode(request)
-
-    case Finch.build(
-           :post,
-           state.config.otlp_endpoint <> "/v1/metrics",
-           Map.to_list(headers),
-           request_body
-         )
-         |> Finch.request(state.finch_pool) do
-      {:ok, %{status: 200}} ->
-        :ok
-
-      {:ok, response} ->
-        {:error, {:unexpected_status, response}}
-
-      {:error, reason} ->
         {:error, reason}
     end
   end
