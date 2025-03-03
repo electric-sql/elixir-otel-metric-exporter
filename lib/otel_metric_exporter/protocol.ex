@@ -31,8 +31,9 @@ defmodule OtelMetricExporter.Protocol do
       attributes: metadata |> prepare_attributes(config) |> OtlpUtils.build_kv(),
       dropped_attributes_count: 0,
       flags: 0,
-      trace_id: nil,
-      span_id: nil,
+      # Official OTel tracing library adds these as charlists, so we need to convert them to binaries
+      trace_id: Map.get(metadata, :otel_trace_id, nil) |> to_string(),
+      span_id: Map.get(metadata, :otel_span_id, nil) |> to_string(),
       event_name: Map.get(metadata, :event_name, nil)
     }
   end

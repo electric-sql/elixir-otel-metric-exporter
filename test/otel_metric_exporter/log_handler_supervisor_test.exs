@@ -127,7 +127,10 @@ defmodule OtelMetricExporter.LogHandlerSupervisorTest do
           %{
             level: :info,
             msg: {:string, "test log #{i}"},
-            meta: %{time: System.system_time(:millisecond)}
+            meta: %{
+              time: System.system_time(:millisecond),
+              otel_trace_id: ~C"00000000000000000000000000000000"
+            }
           },
           config
         )

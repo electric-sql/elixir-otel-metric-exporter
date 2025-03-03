@@ -22,10 +22,13 @@ defmodule OtelMetricExporter.LogAccumulator do
   #   mode :: :drop | :sync | :async
   # ```
   #
-  # `logger_olp` will switch between sync ans async modes depending on the message
+  # `logger_olp` will switch between sync and async modes depending on the message
   # queue length. Sync mode means the process that tries to send the logs will block
   # until the logs are sent. Async mode means the process will return immediately and
-  # send the logs in the background.
+  # send the logs in the background. When this module is used as a callback,
+  # `logger_olp` should be configured to never change into sync mode, as that will block
+  # one of the processes emitting the log until an HTTP request is resolved, which
+  # is not what we want.
 
   @behaviour GenServer
 
@@ -169,8 +172,7 @@ defmodule OtelMetricExporter.LogAccumulator do
     # Block via a receive, waiting for a completion message or a down message
     # from a task that we started
     receive do
-      {ref, result} when is_map_key(pending_tasks, ref) ->
-        dbg(result)
+      {ref, _result} when is_map_key(pending_tasks, ref) ->
         # Remove the task from the pending tasks map
         %{state | pending_tasks: Map.delete(pending_tasks, ref)}
 
