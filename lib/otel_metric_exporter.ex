@@ -94,7 +94,20 @@ defmodule OtelMetricExporter do
 
     config_opts
     |> Keyword.merge(opts)
-    |> Keyword.put(:resource, Map.merge(config_opts[:resource] || %{}, opts[:resource] || %{}))
+    |> Keyword.put(:resource, deep_merge_maps(config_opts[:resource], opts[:resource]))
+  end
+
+  defp deep_merge_maps(nil, map), do: map
+  defp deep_merge_maps(map, nil), do: map
+
+  defp deep_merge_maps(map1, map2) do
+    Map.merge(map1, map2, fn
+      _key, val1, val2 when is_map(val1) and is_map(val2) ->
+        deep_merge_maps(val1, val2)
+
+      _key, _val1, val2 ->
+        val2
+    end)
   end
 
   @impl true
