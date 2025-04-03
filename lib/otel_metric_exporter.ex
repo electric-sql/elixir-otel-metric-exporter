@@ -3,6 +3,7 @@ defmodule OtelMetricExporter do
   require Logger
   alias OtelMetricExporter.OtelApi
   alias OtelMetricExporter.MetricStore
+  alias OtelMetricExporter.TelemetryHandlers
   alias Telemetry.Metrics
 
   @moduledoc """
@@ -113,34 +114,12 @@ defmodule OtelMetricExporter do
 
   @impl true
   def init(config) do
-    :ok = setup_telemetry_handlers(config)
+    children = [
+      {MetricStore, config},
+      {TelemetryHandlers, config}
+    ]
 
-    children = [{MetricStore, config}]
-
-    Supervisor.init(children, strategy: :one_for_one)
-  end
-
-  defp setup_telemetry_handlers(config) do
-    handlers =
-      config.metrics
-      |> Enum.group_by(& &1.event_name)
-      |> Enum.map(fn {event_name, metrics} ->
-        handler_id = {__MODULE__, config.name, event_name}
-
-        :telemetry.attach(
-          handler_id,
-          event_name,
-          &__MODULE__.handle_metric/4,
-          %{metrics: metrics, name: config.name}
-        )
-
-        handler_id
-      end)
-
-    # Store handler IDs in the process dictionary for cleanup
-    Process.put(:"$otel_metric_handlers", handlers)
-
-    :ok
+    Supervisor.init(children, strategy: :rest_for_one)
   end
 
   @doc false
