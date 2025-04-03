@@ -68,7 +68,7 @@ defmodule OtelMetricExporter.MetricStore do
   end
 
   def export_sync(name) do
-    GenServer.call(name, :export_sync)
+    GenServer.call(name, :export_sync, :infinity)
   end
 
   defp metric_type(%Metrics.Counter{}), do: :counter
@@ -163,15 +163,18 @@ defmodule OtelMetricExporter.MetricStore do
 
   @impl true
   def handle_info(:export, state) do
-    Process.send_after(self(), :export, state.config.export_period)
-    # Use the same logic as sync export
-    case export_metrics(state) do
-      :ok ->
-        {:noreply, state}
+    start = System.monotonic_time(:millisecond)
 
-      {:error, _} ->
-        {:noreply, state}
-    end
+    export_metrics(state)
+
+    duration = System.monotonic_time(:millisecond) - start
+
+    # schedule after we've sent to avoid problems when there's some kind of
+    # problem sending and we get into a retry loop but take into account
+    # time taken to send so we keep flushing the data on a regular interval
+    Process.send_after(self(), :export, max(state.config.export_period - duration, 100))
+
+    {:noreply, state}
   end
 
   defp rotate_generation(%State{} = state) do

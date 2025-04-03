@@ -38,6 +38,7 @@ defmodule OtelMetricExporter.MixProject do
       {:jason, "~> 1.4"},
       {:nimble_options, "~> 1.1"},
       {:finch, "~> 0.19"},
+      {:retry, "~> 0.19"},
       {:bypass, "~> 2.1", only: [:test]},
       {:ex_doc, ">= 0.0.0", only: [:dev], runtime: false}
     ]

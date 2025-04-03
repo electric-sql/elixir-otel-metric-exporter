@@ -1,6 +1,11 @@
 defmodule OtelMetricExporter.OtelApi do
   @moduledoc false
+
+  use Retry
+
   alias OtelMetricExporter.Protocol
+
+  require Logger
 
   @type protocol :: :http_protobuf
   @type compression :: :gzip | nil
@@ -46,11 +51,16 @@ defmodule OtelMetricExporter.OtelApi do
                 type: {:or, [:atom, :pid]},
                 required: true,
                 doc: "Finch process pid or registered name to use for sending requests."
+              ],
+              retry: [
+                type: :boolean,
+                default: true,
+                doc: "Retry HTTP requests when receiving a transient error"
               ]
             ] ++ @public_options
           )
 
-  defstruct [:finch] ++ Keyword.keys(@public_options)
+  defstruct [:finch, :retry] ++ Keyword.keys(@public_options)
 
   def public_options, do: @public_options
 
@@ -61,7 +71,7 @@ defmodule OtelMetricExporter.OtelApi do
       |> Map.take(Keyword.keys(@public_options))
 
   def new(opts) do
-    {opts, rest} = Map.split(opts, Keyword.keys(@public_options) ++ [:finch])
+    {opts, rest} = Map.split(opts, Keyword.keys(@public_options) ++ [:finch, :retry])
 
     with {:ok, config} <- NimbleOptions.validate(Map.merge(defaults(), opts), @schema) do
       {:ok, struct!(__MODULE__, config), rest}
@@ -85,17 +95,7 @@ defmodule OtelMetricExporter.OtelApi do
     body
     |> Protobuf.encode_to_iodata()
     |> build_finch_request(path, config)
-    |> Finch.request(config.finch)
-    |> case do
-      {:ok, %{status: 200}} ->
-        :ok
-
-      {:ok, response} ->
-        {:error, {:unexpected_status, response}}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    |> make_finch_request(config.finch, config.retry)
   end
 
   defp build_finch_request(body, path, %__MODULE__{} = config) do
@@ -105,6 +105,51 @@ defmodule OtelMetricExporter.OtelApi do
       Map.to_list(headers(config)),
       maybe_compress(body, config)
     )
+  end
+
+  defp make_finch_request(request, finch_pool, true) do
+    retry with: constant_backoff(1_000), atoms: [:retry] do
+      request
+      |> make_finch_request(finch_pool, false)
+      |> case do
+        :ok ->
+          :ok
+
+        {:error, {:unexpected_status, %{status: status} = response}}
+        when status in [408, 429, 500, 502, 503, 504] ->
+          Logger.warning(
+            "Got transient error #{status} from server #{inspect(response)}, retrying..."
+          )
+
+          :retry
+
+        {:error, {:unexpected_status, _response}} = permanent_error ->
+          # This will be logged by the caller
+          permanent_error
+
+        {:error, reason} ->
+          Logger.warning(
+            "Got connection/transport error when sending metrics #{inspect(reason)}, retrying..."
+          )
+
+          {:retry, reason}
+      end
+    end
+  end
+
+  defp make_finch_request(request, finch_pool, false) do
+    request
+    |> Finch.request(finch_pool)
+    |> case do
+      {:ok, %{status: 200}} ->
+        :ok
+
+      {:ok, response} ->
+        {:error, {:unexpected_status, response}}
+
+      {:error, _reason} = error ->
+        error
+    end
   end
 
   defp url(%__MODULE__{} = config, path), do: config.otlp_endpoint <> path

@@ -23,6 +23,7 @@ defmodule OtelMetricExporter.MetricStoreTest do
       default_buckets: @default_buckets,
       metrics: [],
       finch_pool: TestFinch,
+      retry: false,
       name: @name
     }
 
