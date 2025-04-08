@@ -43,7 +43,7 @@ defmodule OtelMetricExporter.Protocol do
   end
 
   defp encode_body({:report, report}) do
-    %AnyValue{value: {:key_value_list, %KeyValueList{values: OtlpUtils.build_kv(report)}}}
+    %AnyValue{value: {:kvlist_value, %KeyValueList{values: OtlpUtils.build_kv(report)}}}
   end
 
   defp encode_body({io_format, args}) do
