@@ -19,7 +19,7 @@ by adding `otel_metric_exporter` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:otel_metric_exporter, "~> 0.3.4"}
+    {:otel_metric_exporter, "~> 0.3.6"}
   ]
 end
 ```
