@@ -163,11 +163,7 @@ defmodule OtelMetricExporter.MetricStore do
 
   @impl true
   def handle_info(:export, state) do
-    start = System.monotonic_time(:millisecond)
-
-    export_metrics(state)
-
-    duration = System.monotonic_time(:millisecond) - start
+    {duration, _} = :timer.tc(fn -> export_metrics(state) end, :millisecond)
 
     # schedule after we've sent to avoid problems when there's some kind of
     # problem sending and we get into a retry loop but take into account
