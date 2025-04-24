@@ -95,7 +95,7 @@ defmodule OtelMetricExporter.OtelApi do
     body
     |> Protobuf.encode_to_iodata()
     |> build_finch_request(path, config)
-    |> make_finch_request(config.finch, config.retry)
+    |> make_finch_request(config.finch, with_retry?: config.retry)
   end
 
   defp build_finch_request(body, path, %__MODULE__{} = config) do
@@ -107,21 +107,20 @@ defmodule OtelMetricExporter.OtelApi do
     )
   end
 
-  defp make_finch_request(request, finch_pool, true) do
+  defp make_finch_request(request, finch_pool, with_retry?: true) do
     retry with: constant_backoff(1_000) |> expiry(20_000), atoms: [:retry] do
-      request
-      |> make_finch_request(finch_pool, false)
-      |> case do
+      case finch_request(request, finch_pool) do
         :ok ->
           :ok
 
-        {:error, {:unexpected_status, %{status: status} = response}}
+        {:error, {:unexpected_status, %{status: status} = response} = reason}
         when status in [408, 429, 500, 502, 503, 504] ->
           Logger.warning(
-            "Got transient error #{status} from server #{inspect(response)}, retrying..."
+            "Got transient error #{status} from server #{inspect(response)}, retrying...",
+            request_path: request.path
           )
 
-          :retry
+          {:retry, reason}
 
         {:error, {:unexpected_status, _response}} = permanent_error ->
           # This will be logged by the caller
@@ -129,15 +128,22 @@ defmodule OtelMetricExporter.OtelApi do
 
         {:error, reason} ->
           Logger.warning(
-            "Got connection/transport error when sending metrics #{inspect(reason)}, retrying..."
+            "Got connection/transport error when sending metrics #{inspect(reason)}, retrying...",
+            request_path: request.path
           )
 
           {:retry, reason}
       end
+    else
+      {:retry, reason} -> {:error, reason}
     end
   end
 
-  defp make_finch_request(request, finch_pool, false) do
+  defp make_finch_request(request, finch_pool, with_retry?: false) do
+    finch_request(request, finch_pool)
+  end
+
+  defp finch_request(request, finch_pool) do
     request
     |> Finch.request(finch_pool)
     |> case do
