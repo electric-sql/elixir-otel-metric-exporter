@@ -108,7 +108,7 @@ defmodule OtelMetricExporter.OtelApi do
   end
 
   defp make_finch_request(request, finch_pool, with_retry?: true) do
-    retry with: constant_backoff(1_000) |> expiry(20_000), atoms: [:retry] do
+    retry with: exponential_backoff(1_000) |> randomize() |> expiry(20_000), atoms: [:retry] do
       case finch_request(request, finch_pool) do
         :ok ->
           :ok
