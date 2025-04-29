@@ -10,12 +10,15 @@ defmodule OtelMetricExporter.LogHandlerSupervisorTest do
     bypass = Bypass.open()
 
     {:ok, config} =
-      LogAccumulator.check_config(%{
-        otlp_endpoint: "http://localhost:#{bypass.port}",
-        resource: %{instance: %{id: "test"}},
-        debounce_ms: 100,
-        max_buffer_size: 20
-      })
+      LogAccumulator.check_config(
+        %{
+          otlp_endpoint: "http://localhost:#{bypass.port}",
+          resource: %{instance: %{id: "test"}},
+          debounce_ms: 100,
+          max_buffer_size: 20
+        },
+        :test_log_handler_supervisor
+      )
 
     {:ok, %{bypass: bypass, config: config}}
   end

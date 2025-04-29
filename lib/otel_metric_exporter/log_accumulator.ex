@@ -67,10 +67,13 @@ defmodule OtelMetricExporter.LogAccumulator do
 
   defdelegate prepare_log_event(event, config), to: OtelMetricExporter.Protocol
 
-  def check_config(config) do
+  def check_config(config, base_name) do
     with {:ok, validated} <-
            NimbleOptions.validate(Map.merge(config, OtelApi.defaults()), @schema) do
-      {:ok, validated}
+      {:ok,
+       validated
+       |> Map.put(:finch, :"#{base_name}_Finch")
+       |> Map.put(:task_supervisor, :"#{base_name}_TaskSupervisor")}
     end
   end
 
@@ -95,10 +98,10 @@ defmodule OtelMetricExporter.LogAccumulator do
     |> send_schedule_or_block()
   end
 
-  def handle_cast({:config_changed, config}, state) do
+  def handle_call({:config_changed, config}, _from, state) do
     {:ok, api, rest} = OtelApi.new(config)
 
-    {:noreply, Map.merge(state, Map.merge(rest, %{api: api}))}
+    {:reply, :ok, Map.merge(state, Map.merge(rest, %{api: api}))}
   end
 
   def handle_info(:send_log_batch, state) do

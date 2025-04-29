@@ -41,6 +41,8 @@ defmodule OtelMetricExporter.LogHandler do
   alias OtelMetricExporter.LogAccumulator
   alias OtelMetricExporter.LogHandlerSupervisor
 
+  require Logger
+
   @behaviour :logger_handler
 
   @olp_config_keys [
@@ -58,9 +60,10 @@ defmodule OtelMetricExporter.LogHandler do
   @impl true
   def adding_handler(%{config: config} = handler_config) do
     {olp_config, accumulator_config} = Map.split(Map.new(config), @olp_config_keys)
+    base_name = reg_name(handler_config)
 
     with {:ok, olp_config} <- prevalidate_olp(olp_config),
-         {:ok, config} <- LogAccumulator.check_config(accumulator_config),
+         {:ok, config} <- LogAccumulator.check_config(accumulator_config, base_name),
          {:ok, sup_pid, olp} <- start_supervisor(handler_config, config, olp_config) do
       olp_opts = :logger_olp.get_opts(olp)
 
@@ -81,7 +84,7 @@ defmodule OtelMetricExporter.LogHandler do
       :logger_sup,
       %{
         LogHandlerSupervisor.child_spec(
-          name: :"#{handler_config.module}_#{handler_config.id}",
+          name: reg_name(handler_config),
           accumulator_config: accumulator_config,
           olp_config: olp_config
         )
@@ -91,26 +94,36 @@ defmodule OtelMetricExporter.LogHandler do
   end
 
   @impl true
-  def changing_config(set_or_update, %{config: %{olp: olp}} = old_config, new_config) do
-    full_config =
+  def changing_config(
+        set_or_update,
+        %{id: _, config: %{olp: olp} = old_handler_config} = old_config,
+        new_config
+      ) do
+    # Determine the user-facing config to validate based on :set or :update
+    user_config_to_validate =
       case set_or_update do
         :set ->
-          new_config
+          # For :set, only validate the explicitly provided new config.
+          new_config.config
 
         :update ->
-          Map.merge(old_config, new_config, fn
-            :config, v1, v2 -> Map.merge(v1, v2)
-            _k, _v1, v2 -> v2
-          end)
+          # For :update, validate the merged result.
+          Map.merge(old_handler_config, new_config.config)
       end
 
-    {olp_config, accumulator_config} = Map.split(full_config.config, @olp_config_keys)
+    {olp_config, accumulator_config_to_validate} =
+      Map.split(user_config_to_validate, @olp_config_keys)
 
     with {:ok, olp_config} <- prevalidate_olp(olp_config),
-         {:ok, config} <- LogAccumulator.check_config(accumulator_config),
+         {:ok, acc_config} <-
+           LogAccumulator.check_config(accumulator_config_to_validate, reg_name(old_config)),
          :ok <- :logger_olp.set_opts(olp, olp_config) do
-      :logger_olp.cast(olp, {:config_changed, config})
-      {:ok, %{full_config | config: config |> Map.merge(olp_config)}}
+      # full_accumulator_config = Map.merge(acc_config, internal_keys)
+
+      :logger_olp.call(olp, {:config_changed, acc_config})
+      olp_opts = :logger_olp.get_opts(olp)
+      # Return the merged config state for the handler
+      {:ok, %{new_config | config: acc_config |> Map.merge(olp_opts) |> Map.put(:olp, olp)}}
     end
   end
 
@@ -127,19 +140,11 @@ defmodule OtelMetricExporter.LogHandler do
 
   @impl true
   def removing_handler(handler_config) do
-    supervisor_name = reg_name(handler_config, "Supervisor")
-
-    case Process.whereis(supervisor_name) do
-      nil ->
-        :ok
-
-      supervisor_pid ->
-        # Stop the supervisor and all its children
-        Supervisor.stop(supervisor_pid, :normal)
-        :ok
+    case Process.whereis(reg_name(handler_config)) do
+      nil -> :ok
+      _ -> :logger_olp.stop(get_in(handler_config, [:config, :olp]))
     end
   end
 
-  defp reg_name(prefix, part) when is_binary(prefix) or is_atom(prefix), do: :"#{prefix}_#{part}"
-  defp reg_name(%{module: module, id: id}, part), do: :"#{module}_#{id}_#{part}"
+  defp reg_name(%{module: module, id: id}), do: :"#{module}_#{id}"
 end

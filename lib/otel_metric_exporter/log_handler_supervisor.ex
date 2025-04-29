@@ -2,36 +2,34 @@ defmodule OtelMetricExporter.LogHandlerSupervisor do
   @moduledoc false
   use Supervisor, shutdown: 10_000, restart: :temporary
 
+  def fill_accumulator_config(accumulator_config, base_name) do
+    accumulator_config
+    |> Map.put(:finch, :"#{base_name}_Finch")
+    |> Map.put(:task_supervisor, :"#{base_name}_TaskSupervisor")
+  end
+
   def start_link(args) do
     base_name = args[:name]
 
     accumulator_config =
       args[:accumulator_config]
-      |> Map.put(:finch, :"#{base_name}_Finch")
-      |> Map.put(:task_supervisor, :"#{base_name}_TaskSupervisor")
 
-    case Supervisor.start_link(__MODULE__, accumulator_config, name: base_name) do
-      {:ok, supervisor_pid} ->
-        case Supervisor.start_child(
-               supervisor_pid,
-               logger_olp_child_spec(
-                 :"#{base_name}_logger_olp",
-                 accumulator_config,
-                 args[:olp_config]
-               )
-             ) do
-          {:ok, _, olp} ->
-            {:ok, supervisor_pid, olp}
+    olp_child_spec =
+      logger_olp_child_spec(
+        :"#{base_name}_logger_olp",
+        accumulator_config,
+        args[:olp_config]
+      )
 
-          {:error, {reason, child}} when is_tuple(child) and elem(child, 0) == :child ->
-            {:error, reason}
-
-          error ->
-            error
-        end
-
-      {:error, reason} ->
+    with {:ok, sup_pid} <- Supervisor.start_link(__MODULE__, accumulator_config, name: base_name),
+         {:ok, _, olp} <- Supervisor.start_child(sup_pid, olp_child_spec) do
+      {:ok, sup_pid, olp}
+    else
+      {:error, {reason, child}} when is_tuple(child) and elem(child, 0) == :child ->
         {:error, reason}
+
+      error ->
+        error
     end
   end
 
@@ -46,9 +44,9 @@ defmodule OtelMetricExporter.LogHandlerSupervisor do
            accumulator_config,
            olp_config
          ]},
-      restart: :transient,
+      restart: :temporary,
       significant: true,
-      shutdown: 5000,
+      shutdown: 2000,
       type: :worker,
       modules: [OtelMetricExporter.LogAccumulator]
     }

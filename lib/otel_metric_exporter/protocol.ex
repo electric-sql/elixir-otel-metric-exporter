@@ -63,9 +63,12 @@ defmodule OtelMetricExporter.Protocol do
     message = if is_exception(reason), do: Exception.message(reason), else: inspect(reason)
 
     type =
-      cond do
-        is_exception(reason) -> to_string(reason.__struct__)
-        reason == :nocatch -> "Uncaught throw"
+      case reason do
+        {:nocatch, _} -> "Uncaught throw"
+        {:crash, _} -> "Crash"
+        :crash -> "Crash"
+        reason when is_exception(reason) -> to_string(reason.__struct__)
+        _ -> inspect(reason)
       end
 
     metadata
