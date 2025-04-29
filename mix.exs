@@ -40,6 +40,7 @@ defmodule OtelMetricExporter.MixProject do
       {:finch, "~> 0.19"},
       {:retry, "~> 0.19"},
       {:bypass, "~> 2.1", only: [:test]},
+      {:opentelemetry, "~> 1.5", only: [:test]},
       {:ex_doc, ">= 0.0.0", only: [:dev], runtime: false}
     ]
   end

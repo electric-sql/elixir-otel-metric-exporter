@@ -338,4 +338,39 @@ defmodule OtelMetricExporter.LogHandlerIntegrationTest do
     # Should receive the single log after debounce
     assert [%LogRecord{body: %{value: {:string_value, "debounce log"}}}] = logs
   end
+
+  require OpenTelemetry.Tracer, as: Tracer
+
+  test ":opentelemetry trace/span is captured correctly", %{bypass: bypass} do
+    parent = self()
+
+    Bypass.expect_once(bypass, "POST", "/v1/logs", fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+      %ExportLogsServiceRequest{resource_logs: [%{scope_logs: [%{log_records: logs}]}]} =
+        decode_request_body(body)
+
+      send(parent, {:logs, logs})
+      Plug.Conn.resp(conn, 200, "")
+    end)
+
+    span =
+      Tracer.with_span "test-span" do
+        Logger.info("test-log")
+        Tracer.current_span_ctx()
+      end
+
+    trace_id = :otel_span.hex_trace_id(span) |> to_string()
+    span_id = :otel_span.hex_span_id(span) |> to_string()
+
+    assert_receive {:logs, logs}, 500
+
+    assert [
+             %LogRecord{
+               body: %{value: {:string_value, "test-log"}},
+               trace_id: ^trace_id,
+               span_id: ^span_id
+             }
+           ] = logs
+  end
 end
