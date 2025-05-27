@@ -33,33 +33,31 @@ defmodule OtelMetricExporter.LogAccumulator do
   @behaviour GenServer
 
   @schema NimbleOptions.new!(
-            [
-              metadata: [
-                type: {:list, :atom},
-                default: [],
-                doc: "A list of atoms from metadata to attach as attribute to the log event"
-              ],
-              metadata_map: [
-                type: {:map, :atom, :string},
-                default: %{},
-                doc: """
-                Remapping of metadata keys to different attribute names.
-                Example: Plug adds a `request_id` metadata key to log events, but
-                semantic convention for OTel is to use `http.request.id`. This can be
-                achieved by specifying this field to `%{request_id: "http.request.id"}`
-                """
-              ],
-              debounce_ms: [
-                type: :non_neg_integer,
-                default: 5_000,
-                doc: "Period to accumulate logs before sending them"
-              ],
-              max_buffer_size: [
-                type: :non_neg_integer,
-                default: 10_000,
-                doc: "Max amount of log events to store before sending them"
-              ]
-            ] ++ OtelApi.public_options()
+            metadata: [
+              type: {:list, :atom},
+              default: [],
+              doc: "A list of atoms from metadata to attach as attribute to the log event"
+            ],
+            metadata_map: [
+              type: {:map, :atom, :string},
+              default: %{},
+              doc: """
+              Remapping of metadata keys to different attribute names.
+              Example: Plug adds a `request_id` metadata key to log events, but
+              semantic convention for OTel is to use `http.request.id`. This can be
+              achieved by specifying this field to `%{request_id: "http.request.id"}`
+              """
+            ],
+            debounce_ms: [
+              type: :non_neg_integer,
+              default: 5_000,
+              doc: "Period to accumulate logs before sending them"
+            ],
+            max_buffer_size: [
+              type: :non_neg_integer,
+              default: 10_000,
+              doc: "Max amount of log events to store before sending them"
+            ]
           )
 
   @doc false
@@ -68,23 +66,24 @@ defmodule OtelMetricExporter.LogAccumulator do
   defdelegate prepare_log_event(event, config), to: OtelMetricExporter.Protocol
 
   def check_config(config, base_name) do
-    with {:ok, validated} <-
-           NimbleOptions.validate(Map.merge(config, OtelApi.defaults()), @schema) do
+    config =
+      Map.new(config)
+      |> Map.put(:finch, :"#{base_name}_Finch")
+
+    with {:ok, api, rest} <- OtelApi.new(config, :logs),
+         {:ok, validated} <- NimbleOptions.validate(rest, @schema) do
       {:ok,
-       validated
-       |> Map.put(:finch, :"#{base_name}_Finch")
-       |> Map.put(:task_supervisor, :"#{base_name}_TaskSupervisor")}
+       Map.put(validated, :api, api) |> Map.put(:task_supervisor, :"#{base_name}_TaskSupervisor")}
     end
   end
 
+  def init(%{api: %{config: %{exporter: :none}}}), do: :ignore
+
   def init(config) do
     Process.flag(:trap_exit, true)
-    # Store the handler-specific Finch name in the state
-    {:ok, api, rest} = OtelApi.new(config)
 
     {:ok,
-     Map.merge(rest, %{
-       api: api,
+     Map.merge(config, %{
        event_queue: [],
        queue_len: 0,
        timer_ref: nil,
@@ -99,9 +98,7 @@ defmodule OtelMetricExporter.LogAccumulator do
   end
 
   def handle_call({:config_changed, config}, _from, state) do
-    {:ok, api, rest} = OtelApi.new(config)
-
-    {:reply, :ok, Map.merge(state, Map.merge(rest, %{api: api}))}
+    {:reply, :ok, Map.merge(state, config, &if(&1 == :api, do: Map.merge(&2, &3), else: &3))}
   end
 
   def handle_info(:send_log_batch, state) do
@@ -114,7 +111,7 @@ defmodule OtelMetricExporter.LogAccumulator do
         {:noreply, state}
 
       %{pending_tasks: pending_tasks, api: api}
-      when map_size(pending_tasks) < api.otlp_concurrent_requests ->
+      when map_size(pending_tasks) < api.config.otlp_concurrent_requests ->
         # We have some task budget, let's put in a task
         {:noreply, send_events_via_task(state)}
 
@@ -128,7 +125,7 @@ defmodule OtelMetricExporter.LogAccumulator do
       when is_map_key(state.pending_tasks, ref) do
     if match?({:error, _}, result) do
       Logger.debug(
-        "Error sending logs to #{state.api.otlp_endpoint}: #{inspect(elem(result, 1))}"
+        "Error sending logs to #{state.api.config.otlp_endpoint}: #{inspect(elem(result, 1))}"
       )
     end
 
@@ -155,7 +152,7 @@ defmodule OtelMetricExporter.LogAccumulator do
 
   # If we have the maximum number of concurrent requests, block
   defp send_schedule_or_block(%{pending_tasks: pending_tasks} = state)
-       when map_size(pending_tasks) == state.api.otlp_concurrent_requests do
+       when map_size(pending_tasks) == state.api.config.otlp_concurrent_requests do
     state
     |> block_until_any_task_ready()
     |> send_schedule_or_block()

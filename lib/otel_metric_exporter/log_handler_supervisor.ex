@@ -56,9 +56,11 @@ defmodule OtelMetricExporter.LogHandlerSupervisor do
   def init(accumulator_config) do
     children = [
       {Finch,
-       name: accumulator_config[:finch],
-       pools: %{:default => [size: accumulator_config[:otlp_concurrent_requests], count: 1]}},
-      {Task.Supervisor, name: accumulator_config[:task_supervisor]}
+       name: accumulator_config.api.finch,
+       pools: %{
+         :default => [size: accumulator_config.api.config.otlp_concurrent_requests, count: 1]
+       }},
+      {Task.Supervisor, name: accumulator_config.task_supervisor}
     ]
 
     Supervisor.init(children, strategy: :one_for_one, auto_shutdown: :any_significant)

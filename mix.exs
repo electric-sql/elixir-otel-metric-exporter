@@ -17,6 +17,9 @@ defmodule OtelMetricExporter.MixProject do
         licenses: ["Apache-2.0"],
         links: %{"GitHub" => "https://github.com/electric-sql/elixir-otel-metric-exporter"},
         files: ~w(lib .formatter.exs mix.exs README.md LICENSE)
+      ],
+      preferred_cli_env: [
+        "test.watch": :test
       ]
     ]
   end
@@ -41,6 +44,7 @@ defmodule OtelMetricExporter.MixProject do
       {:retry, "~> 0.19"},
       {:bypass, "~> 2.1", only: [:test]},
       {:opentelemetry, "~> 1.5", only: [:test]},
+      {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: [:dev], runtime: false}
     ]
   end

@@ -138,7 +138,7 @@ defmodule OtelMetricExporter.MetricStore do
     :ets.insert(generations_table, {0, System.system_time(:nanosecond), 0})
     :persistent_term.put(generation_key(metrics_table), 0)
 
-    with {:ok, api, config} <- OtelApi.new(Map.put(config, :finch, finch_pool)) do
+    with {:ok, api, config} <- OtelApi.new(Map.put(config, :finch, finch_pool), :metrics) do
       {:ok,
        %State{
          config: config,
