@@ -35,7 +35,7 @@ defmodule OtelMetricExporter.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:protobuf, "~> 0.13.0"},
+      {:protobuf, "~> 0.14.0"},
       {:telemetry, "~> 1.0"},
       {:telemetry_metrics, "~> 1.0"},
       {:jason, "~> 1.4"},
