@@ -16,12 +16,17 @@ defmodule OtelMetricExporter.TelemetryHandlers do
 
   @impl true
   def init(config) do
+    Process.flag(:trap_exit, true)
     handlers = setup_telemetry_handlers(config)
-
     {:ok, %{handlers: handlers}, :hibernate}
   end
 
-  def setup_telemetry_handlers(config) do
+  @impl true
+  def terminate(_reason, %{handlers: handlers}) do
+    for handler_id <- handlers, do: :telemetry.detach(handler_id)
+  end
+
+  defp setup_telemetry_handlers(config) do
     config.metrics
     |> Enum.group_by(& &1.event_name)
     |> Enum.map(fn {event_name, metrics} ->

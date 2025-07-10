@@ -1,6 +1,7 @@
 defmodule OtelMetricExporterTest do
   use ExUnit.Case
   alias Telemetry.Metrics
+  import ExUnit.CaptureLog
 
   setup do
     on_exit(fn ->
@@ -136,6 +137,26 @@ defmodule OtelMetricExporterTest do
 
       metrics = OtelMetricExporter.MetricStore.get_metrics(@name)
       assert get_in(metrics, [{:counter, "test.tags.value"}, %{dynamic: "computed_test"}]) == 1
+    end
+
+    test "handles detaching of handlers on shutdown" do
+      metrics = [
+        Telemetry.Metrics.sum("test.event.value", event_name: [:test, :event])
+      ]
+
+      start_supervised!({OtelMetricExporter, @base_config ++ [metrics: metrics]})
+
+      stop_supervised!(OtelMetricExporter)
+
+      log =
+        capture_log(fn ->
+          :telemetry.execute([:test, :event], %{value: 42}, %{test: "value"})
+          # Give logger a moment to flush
+          Process.sleep(50)
+        end)
+
+      refute log =~ "Handler {OtelMetricExporter.TelemetryHandlers"
+      refute log =~ "has failed and has been detached"
     end
   end
 end
