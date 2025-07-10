@@ -140,8 +140,10 @@ defmodule OtelMetricExporterTest do
     end
 
     test "handles detaching of handlers on shutdown" do
+      test_event = :"event_#{inspect(self())}"
+
       metrics = [
-        Telemetry.Metrics.sum("test.event.value", event_name: [:test, :event])
+        Telemetry.Metrics.sum("test.event.value", event_name: [:test, test_event])
       ]
 
       start_supervised!({OtelMetricExporter, @base_config ++ [metrics: metrics]})
@@ -150,13 +152,12 @@ defmodule OtelMetricExporterTest do
 
       log =
         capture_log(fn ->
-          :telemetry.execute([:test, :event], %{value: 42}, %{test: "value"})
+          :telemetry.execute([:test, test_event], %{value: 42}, %{test: "value"})
           # Give logger a moment to flush
           Process.sleep(50)
         end)
 
-      refute log =~ "Handler {OtelMetricExporter.TelemetryHandlers"
-      refute log =~ "has failed and has been detached"
+      refute log =~ "[:test, #{inspect(test_event)}]} has failed and has been detached."
     end
   end
 end
