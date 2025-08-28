@@ -431,8 +431,8 @@ defmodule OtelMetricExporter.LogHandlerIntegrationTest do
         Tracer.current_span_ctx()
       end
 
-    trace_id = :otel_span.hex_trace_id(span) |> to_string()
-    span_id = :otel_span.hex_span_id(span) |> to_string()
+    trace_id = :otel_span.hex_trace_id(span) |> Base.decode16!(case: :mixed)
+    span_id = :otel_span.hex_span_id(span) |> Base.decode16!(case: :mixed)
 
     assert_receive {:logs, logs}, 500
 

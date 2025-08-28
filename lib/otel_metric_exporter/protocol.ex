@@ -31,11 +31,16 @@ defmodule OtelMetricExporter.Protocol do
       attributes: metadata |> prepare_attributes(config) |> OtlpUtils.build_kv(),
       dropped_attributes_count: 0,
       flags: 0,
-      # Official OTel tracing library adds these as charlists, so we need to convert them to binaries
-      trace_id: Map.get(metadata, :otel_trace_id, nil) |> to_string(),
-      span_id: Map.get(metadata, :otel_span_id, nil) |> to_string(),
+      # Official OTel tracing library adds these
+      trace_id: Map.get(metadata, :otel_trace_id, nil) |> hex_to_bytes(),
+      span_id: Map.get(metadata, :otel_span_id, nil) |> hex_to_bytes(),
       event_name: Map.get(metadata, :event_name, nil)
     }
+  end
+
+  defp hex_to_bytes(hex_string) do
+    # Converts the otel hex chatlist/string into the underlying bytes
+    hex_string |> to_string() |> Base.decode16!(case: :mixed)
   end
 
   defp encode_body({:string, chardata}) do
