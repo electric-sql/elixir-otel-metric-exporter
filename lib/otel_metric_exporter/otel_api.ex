@@ -54,9 +54,23 @@ defmodule OtelMetricExporter.OtelApi do
   @spec send_proto(struct(), String.t(), %__MODULE__{}) :: :ok | {:error, any()}
   defp send_proto(body, path, %__MODULE__{} = api) do
     body
-    |> Protobuf.encode_to_iodata()
+    |> encode_to_iodata()
     |> build_finch_request(path, api)
     |> make_finch_request(api.finch, with_retry?: api.retry)
+  end
+
+  def encode_to_iodata(body) do
+    Protobuf.encode_to_iodata(body)
+  rescue
+    e in Protobuf.EncodeError ->
+      raise Protobuf.EncodeError,
+        message: """
+        Failed to encode body: #{e.message}
+
+        Body:
+
+        #{inspect(body, pretty: true, limit: :infinity, printable_limit: :infinity)}
+        """
   end
 
   defp build_finch_request(body, path, %__MODULE__{} = api) do
