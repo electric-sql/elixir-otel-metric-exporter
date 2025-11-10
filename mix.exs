@@ -49,6 +49,10 @@ defmodule OtelMetricExporter.MixProject do
     ]
   end
 
+  def cli do
+    [preffered_envs: ["test.watch": :test]]
+  end
+
   defp docs do
     [
       main: "OtelMetricExporter",
