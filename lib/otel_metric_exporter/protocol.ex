@@ -48,7 +48,13 @@ defmodule OtelMetricExporter.Protocol do
   end
 
   defp encode_body({:report, report}) do
-    %AnyValue{value: {:kvlist_value, %KeyValueList{values: OtlpUtils.build_kv(report)}}}
+    if (is_map(report) or is_list(report)) && report[:elixir_translation] do
+      %AnyValue{
+        value: {:string_value, IO.iodata_to_binary(report[:elixir_translation])}
+      }
+    else
+      %AnyValue{value: {:kvlist_value, %KeyValueList{values: OtlpUtils.build_kv(report)}}}
+    end
   end
 
   defp encode_body({io_format, args}) do
