@@ -9,17 +9,17 @@ defmodule OtelMetricExporter.OtlpUtils do
   }
 
   def build_kv(tags, key_prefix \\ "") do
-    Enum.flat_map(tags, fn {key, value} ->
-      if is_map(value) do
+    Enum.flat_map(tags, fn
+      {key, value} when is_map(value) ->
         build_kv(value, key_prefix <> to_string(key) <> ".")
-      else
+
+      {key, value} ->
         [
           %KeyValue{
             key: key_prefix <> to_string(key),
             value: %AnyValue{value: to_kv_value(value)}
           }
         ]
-      end
     end)
   end
 
@@ -28,7 +28,7 @@ defmodule OtelMetricExporter.OtlpUtils do
   def to_kv_value(value) when is_integer(value), do: {:int_value, value}
   def to_kv_value(value) when is_float(value), do: {:double_value, value}
   def to_kv_value(value) when is_boolean(value), do: {:bool_value, value}
-  def to_kv_value(value) when is_struct(value), do: {:string_value, to_string(value)}
+  def to_kv_value(value) when is_struct(value), do: {:string_value, inspect(value)}
 
   def to_kv_value([{k, _} | _] = value) when is_atom(k),
     do: {:kvlist_value, %KeyValueList{values: build_kv(value)}}
