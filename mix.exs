@@ -35,7 +35,7 @@ defmodule OtelMetricExporter.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:protobuf, "~> 0.13.0"},
+      {:protobuf, "~> 0.15"},
       {:telemetry, "~> 1.0"},
       {:telemetry_metrics, "~> 1.0"},
       {:jason, "~> 1.4"},
@@ -47,6 +47,10 @@ defmodule OtelMetricExporter.MixProject do
       {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: [:dev], runtime: false}
     ]
+  end
+
+  def cli do
+    [preffered_envs: ["test.watch": :test]]
   end
 
   defp docs do
