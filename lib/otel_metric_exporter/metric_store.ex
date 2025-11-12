@@ -213,7 +213,10 @@ defmodule OtelMetricExporter.MetricStore do
 
       convert_metric(metric, tagged_values)
     end)
-    |> then(&OtelApi.send_metrics(state.api, &1))
+    |> then(fn payload ->
+      task = Task.async(fn -> OtelApi.send_metrics(state.api, payload) end)
+      Task.await(task, 20_000)
+    end)
     |> case do
       :ok ->
         # Clear exported metrics
