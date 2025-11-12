@@ -159,5 +159,27 @@ defmodule OtelMetricExporterTest do
 
       refute log =~ "[:test, #{inspect(test_event)}]} has failed and has been detached."
     end
+
+    test "handles detaching of handlers if ETS table missing" do
+      test_event = :"event_#{inspect(self())}"
+
+      metrics = [
+        Telemetry.Metrics.sum("test.event.value", event_name: [:test, test_event])
+      ]
+
+      start_supervised!({OtelMetricExporter, @base_config ++ [metrics: metrics]})
+
+      :ets.delete(@name)
+
+      log =
+        capture_log(fn ->
+          :telemetry.execute([:test, test_event], %{value: 42}, %{test: "value"})
+          # Give logger a moment to flush
+          Process.sleep(50)
+        end)
+
+      assert log =~ "OtelMetricExporter failed to process event due to ETS table missing"
+      refute log =~ "[:test, #{inspect(test_event)}]} has failed and has been detached."
+    end
   end
 end

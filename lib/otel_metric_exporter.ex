@@ -123,7 +123,11 @@ defmodule OtelMetricExporter do
   end
 
   @doc false
-  def handle_metric(_event_name, measurements, metadata, %{metrics: metrics, name: name}) do
+  def handle_metric(_event_name, measurements, metadata, %{
+        metrics: metrics,
+        name: name,
+        handler_id: handler_id
+      }) do
     for metric <- metrics do
       if is_nil(metric.keep) || metric.keep.(metadata) do
         value = extract_measurement(metric, measurements, metadata)
@@ -133,6 +137,15 @@ defmodule OtelMetricExporter do
         MetricStore.write_metric(name, metric, metric_name, value, tags)
       end
     end
+  rescue
+    e in ArgumentError ->
+      if MetricStore.table_exists?(name) do
+        reraise e, __STACKTRACE__
+      end
+
+      Logger.warning("OtelMetricExporter failed to process event due to ETS table missing")
+      :telemetry.detach(handler_id)
+      :ok
   end
 
   defp extract_measurement(metric, measurements, metadata) do

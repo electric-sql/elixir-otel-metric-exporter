@@ -114,6 +114,13 @@ defmodule OtelMetricExporter.MetricStore do
     )
   end
 
+  def table_exists?(metrics_table) do
+    case :ets.whereis(metrics_table) do
+      :undefined -> false
+      tid when is_reference(tid) -> true
+    end
+  end
+
   defp find_bucket(%Metrics.Distribution{reporter_options: opts}, value) do
     bucket_bounds = Keyword.get(opts, :buckets, @default_buckets)
 
