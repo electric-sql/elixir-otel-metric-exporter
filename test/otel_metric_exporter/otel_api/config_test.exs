@@ -35,11 +35,13 @@ defmodule OtelMetricExporter.OtelApi.ConfigTest do
                     exporter: :otlp
                   },
                   otlp_compression: :gzip,
-                  otlp_concurrent_requests: 10,
+                  otlp_concurrent_requests: 50,
+                  max_batch_size: 500,
                   resource: %{},
                   otlp_headers: %{},
                   otlp_protocol: :http_protobuf,
-                  otlp_timeout: 10000
+                  otlp_timeout: 10000,
+                  export_callback: nil
                 }}
     end
 
@@ -62,12 +64,14 @@ defmodule OtelMetricExporter.OtelApi.ConfigTest do
                     otlp_headers: %{"key1" => "value1", "key2" => "value2"}
                   },
                   otlp_compression: :gzip,
-                  otlp_concurrent_requests: 10,
+                  otlp_concurrent_requests: 50,
+                  max_batch_size: 500,
                   resource: %{},
                   otlp_headers: %{},
                   otlp_protocol: :http_protobuf,
                   otlp_timeout: 10000,
-                  otlp_endpoint: "http://localhost:4317"
+                  otlp_endpoint: "http://localhost:4317",
+                  export_callback: nil
                 }}
     end
 
@@ -93,12 +97,14 @@ defmodule OtelMetricExporter.OtelApi.ConfigTest do
                     otlp_headers: %{"key1" => "value1", "key2" => "value2"}
                   },
                   otlp_compression: :gzip,
-                  otlp_concurrent_requests: 10,
+                  otlp_concurrent_requests: 50,
+                  max_batch_size: 500,
                   resource: %{},
                   otlp_headers: %{},
                   otlp_protocol: :http_protobuf,
                   otlp_timeout: 10000,
-                  otlp_endpoint: "http://localhost:4317"
+                  otlp_endpoint: "http://localhost:4317",
+                  export_callback: nil
                 }}
     end
   end

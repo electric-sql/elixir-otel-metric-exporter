@@ -6,10 +6,12 @@ defmodule OtelMetricExporter.OtelApi.Config do
     :otlp_protocol,
     :otlp_headers,
     :otlp_timeout,
+    :export_callback,
     :exporter,
     :resource,
     :otlp_compression,
-    :otlp_concurrent_requests
+    :otlp_concurrent_requests,
+    :max_batch_size
   ]
 
   @type protocol :: :http_protobuf
@@ -67,8 +69,23 @@ defmodule OtelMetricExporter.OtelApi.Config do
     ],
     otlp_concurrent_requests: [
       type: :non_neg_integer,
-      default: 10,
+      default: 50,
       doc: "Number of concurrent requests to send to the OTLP endpoint."
+    ],
+    max_batch_size: [
+      type: :pos_integer,
+      default: 500,
+      doc: "Maximum number of metrics to send per batch request."
+    ],
+    export_callback: [
+      type: {:or, [{:fun, 2}, nil]},
+      default: nil,
+      doc: """
+      A callback function invoked instead of making an HTTP request. Should accept as arguments:
+
+      - `{type, batch}`: kind (:metrics or :logs) and list of signals
+      - `config`: the options passed to this OtelMetricExporter instance
+      """
     ],
     resource: [
       type: {:map, {:or, [:atom, :string]}, :any},

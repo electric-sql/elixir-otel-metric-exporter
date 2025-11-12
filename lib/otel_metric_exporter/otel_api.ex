@@ -39,17 +39,23 @@ defmodule OtelMetricExporter.OtelApi do
     end
   end
 
-  def send_log_events(%__MODULE__{config: config} = api, events) do
+  def send_log_events(%__MODULE__{config: %{export_callback: nil} = config} = api, events) do
     events
     |> Protocol.build_log_service_request(config.resource)
     |> send_proto("/v1/logs", api)
   end
 
-  def send_metrics(%__MODULE__{config: config} = api, metrics) do
+  def send_log_events(%__MODULE__{config: config}, events),
+    do: execute_export_callback(events, :logs, config)
+
+  def send_metrics(%__MODULE__{config: %{export_callback: nil} = config} = api, metrics) do
     metrics
     |> Protocol.build_metric_service_request(config.resource)
     |> send_proto("/v1/metrics", api)
   end
+
+  def send_metrics(%__MODULE__{config: config}, metrics),
+    do: execute_export_callback(metrics, :metrics, config)
 
   @spec send_proto(struct(), String.t(), %__MODULE__{}) :: :ok | {:error, any()}
   defp send_proto(body, path, %__MODULE__{} = api) do
@@ -150,4 +156,11 @@ defmodule OtelMetricExporter.OtelApi do
     do: :zlib.gzip(body)
 
   defp maybe_compress(body, _), do: body
+
+  defp execute_export_callback(batch, type, config) do
+    case config.export_callback.({type, batch}, config) do
+      {:error, _} = error -> error
+      _ -> :ok
+    end
+  end
 end

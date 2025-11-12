@@ -2,6 +2,8 @@ defmodule OtelMetricExporter.OtelApiTest do
   use ExUnit.Case, async: false
   alias OtelMetricExporter.OtelApi
   alias OtelMetricExporter.OtelApi.Config
+  alias OtelMetricExporter.Opentelemetry.Proto.Logs.V1.LogRecord
+  alias OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.Metric
 
   setup do
     on_exit(fn ->
@@ -88,6 +90,44 @@ defmodule OtelMetricExporter.OtelApiTest do
                  },
                  :metrics
                )
+    end
+  end
+
+  describe "send_metrics/2" do
+    test "if :config has export_callback, executes it instead of sending HTTP request" do
+      pid = self()
+
+      callback =
+        fn {:metrics, [metric]}, %Config{} ->
+          send(pid, metric.description)
+        end
+
+      metrics = [%Metric{description: "callback executed"}]
+
+      %OtelApi{config: %Config{export_callback: callback}}
+      |> OtelApi.send_metrics(metrics)
+
+      assert_received "callback executed"
+    end
+  end
+
+  describe "send_log_events/2" do
+    test "if :config has export_callback, executes it instead of sending HTTP request" do
+      pid = self()
+
+      callback =
+        fn {:logs, [log]}, %Config{} ->
+          {:string_value, message} = log.body.value
+
+          send(pid, message)
+        end
+
+      logs = [%LogRecord{body: %{value: {:string_value, "callback executed"}}}]
+
+      %OtelApi{config: %Config{export_callback: callback}}
+      |> OtelApi.send_log_events(logs)
+
+      assert_received "callback executed"
     end
   end
 end
