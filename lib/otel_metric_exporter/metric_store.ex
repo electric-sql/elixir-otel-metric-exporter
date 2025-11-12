@@ -216,16 +216,10 @@ defmodule OtelMetricExporter.MetricStore do
     |> then(fn payload ->
       task = Task.async(fn -> OtelApi.send_metrics(state.api, payload) end)
 
-      case Task.yield(task, 20_000) do
-        {:ok, result} ->
-          result
-
-        {:exit, reason} ->
-          {:error, reason}
-
-        nil ->
-          Task.shutdown(task)
-          {:error, :timeout}
+      case Task.yield(task, 20_000) || Task.shutdown(task) do
+        {:ok, result} -> result
+        {:exit, reason} -> {:error, reason}
+        nil -> {:error, :timeout}
       end
     end)
     |> case do
