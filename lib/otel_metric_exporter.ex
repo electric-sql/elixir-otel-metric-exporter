@@ -95,6 +95,10 @@ defmodule OtelMetricExporter do
 
     config_opts
     |> Keyword.merge(opts)
+    |> Keyword.put(
+      :otlp_headers,
+      deep_merge_maps(config_opts[:otlp_headers], opts[:otlp_headers])
+    )
     |> Keyword.put(:resource, deep_merge_maps(config_opts[:resource], opts[:resource]))
   end
 
