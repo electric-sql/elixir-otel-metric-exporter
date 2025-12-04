@@ -106,11 +106,18 @@ defmodule OtelMetricExporter.MetricStoreTest do
 
   describe "export flow" do
     test "exports all metrics in protobuf format", %{bypass: bypass, store_config: config} do
-      metric1 = Metrics.sum("test.sum")
-      metric2 = Metrics.counter("test.counter")
-      metric3 = Metrics.last_value("test.last_value")
-      metric4 = Metrics.distribution("test.distribution")
-      start_supervised!({MetricStore, %{config | metrics: [metric1, metric2, metric3, metric4]}})
+      metrics =
+        [metric1, metric2, metric_lv_int, metric_lv_bigint, metric_lv_float, metric4] =
+        [
+          Metrics.sum("test.sum"),
+          Metrics.counter("test.counter"),
+          Metrics.last_value("test.last_value.int"),
+          Metrics.last_value("test.last_value.bigint"),
+          Metrics.last_value("test.last_value.float"),
+          Metrics.distribution("test.distribution")
+        ]
+
+      start_supervised!({MetricStore, %{config | metrics: metrics}})
 
       tags = %{test: "value"}
 
@@ -130,7 +137,9 @@ defmodule OtelMetricExporter.MetricStoreTest do
 
       MetricStore.write_metric(@name, metric1, 1, tags)
       MetricStore.write_metric(@name, metric2, 2, tags)
-      MetricStore.write_metric(@name, metric3, 3, tags)
+      MetricStore.write_metric(@name, metric_lv_int, 2 ** 63 - 1, tags)
+      MetricStore.write_metric(@name, metric_lv_bigint, 2 ** 70, tags)
+      MetricStore.write_metric(@name, metric_lv_float, -1.5, tags)
       MetricStore.write_metric(@name, metric4, 4, tags)
       MetricStore.write_metric(@name, metric4, 2000, tags)
 

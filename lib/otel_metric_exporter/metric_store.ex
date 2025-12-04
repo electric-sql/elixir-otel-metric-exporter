@@ -266,7 +266,7 @@ defmodule OtelMetricExporter.MetricStore do
              attributes: build_kv(tags),
              start_time_unix_nano: from,
              time_unix_nano: to,
-             value: {:as_int, value}
+             value: convert_value(value, :int)
            }
          end),
        aggregation_temporality: :AGGREGATION_TEMPORALITY_CUMULATIVE,
@@ -283,7 +283,7 @@ defmodule OtelMetricExporter.MetricStore do
              attributes: build_kv(tags),
              start_time_unix_nano: from,
              time_unix_nano: to,
-             value: {:as_int, value}
+             value: convert_value(value, :int)
            }
          end),
        aggregation_temporality: :AGGREGATION_TEMPORALITY_CUMULATIVE,
@@ -300,7 +300,7 @@ defmodule OtelMetricExporter.MetricStore do
              attributes: build_kv(tags),
              start_time_unix_nano: from,
              time_unix_nano: to,
-             value: {:as_double, value}
+             value: convert_value(value, :double)
            }
          end)
      }}
@@ -348,6 +348,24 @@ defmodule OtelMetricExporter.MetricStore do
   defp convert_unit(:gigabyte), do: "GBy"
   defp convert_unit(:terabyte), do: "TBy"
   defp convert_unit(x) when is_atom(x), do: Atom.to_string(x)
+
+  # These two clauses are here to preserve the current behaviour of the library and avoid
+  # introducing unexpected errors. Ideally, we would filter these nil values higher up in the
+  # call stack and stop short of exporting metrics with nil values.
+  defp convert_value(nil, :int), do: {:as_int, nil}
+  defp convert_value(nil, :double), do: {:as_double, nil}
+
+  @signed_int64_max 2 ** 63 - 1
+  @signed_int64_min -2 ** 63
+  defp convert_value(int, _preferred_type)
+       when is_integer(int) and int >= @signed_int64_min and int <= @signed_int64_max,
+       do: {:as_int, int}
+
+  # The OpenTelemetry protocol has no supporrt for bigint, so the best we can do is convert to
+  # double at the cost of losing some precision.
+  defp convert_value(bigint_or_float, _preferred_type)
+       when is_integer(bigint_or_float) or is_float(bigint_or_float),
+       do: {:as_double, bigint_or_float / 1}
 
   defp generation_key(metrics_table) do
     {__MODULE__, metrics_table, :generation}
