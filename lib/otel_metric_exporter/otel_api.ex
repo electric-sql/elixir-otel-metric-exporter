@@ -60,17 +60,20 @@ defmodule OtelMetricExporter.OtelApi do
   end
 
   def encode_to_iodata(body) do
-    Protobuf.encode_to_iodata(body)
+    {iodata, _size} = Protox.encode!(body)
+    iodata
   rescue
-    e in Protobuf.EncodeError ->
-      raise Protobuf.EncodeError,
-        message: """
-        Failed to encode body: #{e.message}
+    e in [Protox.EncodingError, Protox.RequiredFieldsError] ->
+      reraise %Protox.EncodingError{
+                message: """
+                Failed to encode body: #{Exception.message(e)}
 
-        Body:
+                Body:
 
-        #{inspect(body, pretty: true, limit: :infinity, printable_limit: :infinity)}
-        """
+                #{inspect(body, pretty: true, limit: :infinity, printable_limit: :infinity)}
+                """
+              },
+              __STACKTRACE__
   end
 
   defp build_finch_request(body, path, %__MODULE__{} = api) do

@@ -251,7 +251,7 @@ defmodule OtelMetricExporter.MetricStore do
        ) do
     %Metric{
       name: Enum.join(name, "."),
-      description: description,
+      description: description || "",
       unit: convert_unit(unit),
       data: convert_data(metric, values)
     }
@@ -337,7 +337,7 @@ defmodule OtelMetricExporter.MetricStore do
      }}
   end
 
-  defp convert_unit(:unit), do: nil
+  defp convert_unit(:unit), do: ""
   defp convert_unit(:second), do: "s"
   defp convert_unit(:millisecond), do: "ms"
   defp convert_unit(:microsecond), do: "us"
@@ -352,8 +352,8 @@ defmodule OtelMetricExporter.MetricStore do
   # These two clauses are here to preserve the current behaviour of the library and avoid
   # introducing unexpected errors. Ideally, we would filter these nil values higher up in the
   # call stack and stop short of exporting metrics with nil values.
-  defp convert_value(nil, :int), do: {:as_int, nil}
-  defp convert_value(nil, :double), do: {:as_double, nil}
+  defp convert_value(nil, :int), do: {:as_int, 0}
+  defp convert_value(nil, :double), do: {:as_double, 0.0}
 
   @signed_int64_max 2 ** 63 - 1
   @signed_int64_min -2 ** 63

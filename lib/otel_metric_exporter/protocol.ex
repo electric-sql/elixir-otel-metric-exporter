@@ -10,7 +10,6 @@ defmodule OtelMetricExporter.Protocol do
   alias OtelMetricExporter.Opentelemetry.Proto.Logs.V1.LogRecord
   alias OtelMetricExporter.Opentelemetry.Proto.Logs.V1.ResourceLogs
   alias OtelMetricExporter.Opentelemetry.Proto.Logs.V1.ScopeLogs
-  alias OtelMetricExporter.Opentelemetry.Proto.Logs.V1.SeverityNumber
   alias OtelMetricExporter.Opentelemetry.Proto.Resource.V1.Resource
   alias OtelMetricExporter.OtlpUtils
 
@@ -34,7 +33,7 @@ defmodule OtelMetricExporter.Protocol do
       # Official OTel tracing library adds these
       trace_id: Map.get(metadata, :otel_trace_id, nil) |> hex_to_bytes(),
       span_id: Map.get(metadata, :otel_span_id, nil) |> hex_to_bytes(),
-      event_name: Map.get(metadata, :event_name, nil)
+      event_name: Map.get(metadata, :event_name, "")
     }
   end
 
@@ -61,14 +60,14 @@ defmodule OtelMetricExporter.Protocol do
     %AnyValue{value: {:string_value, :io_lib.format(io_format, args) |> IO.chardata_to_string()}}
   end
 
-  defp severity_number(:debug), do: SeverityNumber.value(:SEVERITY_NUMBER_DEBUG)
-  defp severity_number(:info), do: SeverityNumber.value(:SEVERITY_NUMBER_INFO)
-  defp severity_number(:notice), do: SeverityNumber.value(:SEVERITY_NUMBER_INFO2)
-  defp severity_number(:warning), do: SeverityNumber.value(:SEVERITY_NUMBER_WARN)
-  defp severity_number(:error), do: SeverityNumber.value(:SEVERITY_NUMBER_ERROR)
-  defp severity_number(:critical), do: SeverityNumber.value(:SEVERITY_NUMBER_ERROR2)
-  defp severity_number(:alert), do: SeverityNumber.value(:SEVERITY_NUMBER_FATAL)
-  defp severity_number(:emergency), do: SeverityNumber.value(:SEVERITY_NUMBER_FATAL4)
+  defp severity_number(:debug), do: :SEVERITY_NUMBER_DEBUG
+  defp severity_number(:info), do: :SEVERITY_NUMBER_INFO
+  defp severity_number(:notice), do: :SEVERITY_NUMBER_INFO2
+  defp severity_number(:warning), do: :SEVERITY_NUMBER_WARN
+  defp severity_number(:error), do: :SEVERITY_NUMBER_ERROR
+  defp severity_number(:critical), do: :SEVERITY_NUMBER_ERROR2
+  defp severity_number(:alert), do: :SEVERITY_NUMBER_FATAL
+  defp severity_number(:emergency), do: :SEVERITY_NUMBER_FATAL4
 
   defp prepare_attributes(%{crash_reason: {reason, stacktrace}} = metadata, config) do
     message = if is_exception(reason), do: Exception.message(reason), else: inspect(reason)
