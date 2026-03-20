@@ -349,12 +349,6 @@ defmodule OtelMetricExporter.MetricStore do
   defp convert_unit(:terabyte), do: "TBy"
   defp convert_unit(x) when is_atom(x), do: Atom.to_string(x)
 
-  # These two clauses are here to preserve the current behaviour of the library and avoid
-  # introducing unexpected errors. Ideally, we would filter these nil values higher up in the
-  # call stack and stop short of exporting metrics with nil values.
-  defp convert_value(nil, :int), do: {:as_int, 0}
-  defp convert_value(nil, :double), do: {:as_double, 0.0}
-
   @signed_int64_max 2 ** 63 - 1
   @signed_int64_min -2 ** 63
   defp convert_value(int, _preferred_type)

@@ -135,10 +135,13 @@ defmodule OtelMetricExporter do
     for metric <- metrics do
       if is_nil(metric.keep) || metric.keep.(metadata) do
         value = extract_measurement(metric, measurements, metadata)
-        tags = extract_tags(metric, metadata)
 
-        metric_name = "#{Enum.join(metric.name, ".")}"
-        MetricStore.write_metric(name, metric, metric_name, value, tags)
+        unless is_nil(value) do
+          tags = extract_tags(metric, metadata)
+
+          metric_name = "#{Enum.join(metric.name, ".")}"
+          MetricStore.write_metric(name, metric, metric_name, value, tags)
+        end
       end
     end
   rescue

@@ -436,363 +436,6 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.AggregationTemporali
   )
 end
 
-defmodule OtelMetricExporter.Opentelemetry.Proto.Logs.V1.LogRecordFlags do
-  @moduledoc false
-  @type t :: %__MODULE__{}
-  defstruct []
-
-  (
-    @spec default() :: :LOG_RECORD_FLAGS_DO_NOT_USE
-    def default() do
-      :LOG_RECORD_FLAGS_DO_NOT_USE
-    end
-  )
-
-  @spec encode(atom() | String.t()) :: integer() | atom()
-  def encode(:LOG_RECORD_FLAGS_DO_NOT_USE) do
-    0
-  end
-
-  def encode(:LOG_RECORD_FLAGS_TRACE_FLAGS_MASK) do
-    255
-  end
-
-  def encode(x) do
-    x
-  end
-
-  @spec decode(integer()) :: atom() | integer()
-  def decode(0) do
-    :LOG_RECORD_FLAGS_DO_NOT_USE
-  end
-
-  def decode(255) do
-    :LOG_RECORD_FLAGS_TRACE_FLAGS_MASK
-  end
-
-  def decode(x) do
-    x
-  end
-
-  @spec constants() :: [{integer(), atom()}]
-  def constants() do
-    [{0, :LOG_RECORD_FLAGS_DO_NOT_USE}, {255, :LOG_RECORD_FLAGS_TRACE_FLAGS_MASK}]
-  end
-
-  @spec has_constant?(any()) :: boolean()
-  (
-    def has_constant?(:LOG_RECORD_FLAGS_DO_NOT_USE) do
-      true
-    end
-
-    def has_constant?(:LOG_RECORD_FLAGS_TRACE_FLAGS_MASK) do
-      true
-    end
-
-    def has_constant?(_) do
-      false
-    end
-  )
-end
-
-defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.DataPointFlags do
-  @moduledoc false
-  @type t :: %__MODULE__{}
-  defstruct []
-
-  (
-    @spec default() :: :DATA_POINT_FLAGS_DO_NOT_USE
-    def default() do
-      :DATA_POINT_FLAGS_DO_NOT_USE
-    end
-  )
-
-  @spec encode(atom() | String.t()) :: integer() | atom()
-  def encode(:DATA_POINT_FLAGS_DO_NOT_USE) do
-    0
-  end
-
-  def encode(:DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK) do
-    1
-  end
-
-  def encode(x) do
-    x
-  end
-
-  @spec decode(integer()) :: atom() | integer()
-  def decode(0) do
-    :DATA_POINT_FLAGS_DO_NOT_USE
-  end
-
-  def decode(1) do
-    :DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK
-  end
-
-  def decode(x) do
-    x
-  end
-
-  @spec constants() :: [{integer(), atom()}]
-  def constants() do
-    [{0, :DATA_POINT_FLAGS_DO_NOT_USE}, {1, :DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK}]
-  end
-
-  @spec has_constant?(any()) :: boolean()
-  (
-    def has_constant?(:DATA_POINT_FLAGS_DO_NOT_USE) do
-      true
-    end
-
-    def has_constant?(:DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK) do
-      true
-    end
-
-    def has_constant?(_) do
-      false
-    end
-  )
-end
-
-defmodule OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsPartialSuccess do
-  @moduledoc false
-  if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
-  else
-    raise "This code was generated with protox 2 but the runtime is using an older version of protox."
-  end
-
-  @type t :: %__MODULE__{
-          error_message: String.t(),
-          rejected_log_records: integer(),
-          __uf__: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-        }
-  defstruct error_message: "", rejected_log_records: 0, __uf__: []
-
-  (
-    (
-      @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
-      def encode(msg) do
-        msg |> encode!() |> Tuple.insert_at(0, :ok)
-      rescue
-        e in [Protox.EncodingError, Protox.RequiredFieldsError] -> {:error, e}
-      end
-
-      @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
-      def encode!(msg) do
-        {_acc = [], _acc_size = 0}
-        |> encode_error_message(msg)
-        |> encode_rejected_log_records(msg)
-        |> encode_unknown_fields(msg)
-      end
-    )
-
-    defp encode_error_message({acc, acc_size}, msg) do
-      if msg.error_message == "" do
-        {acc, acc_size}
-      else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_string(msg.error_message)
-        {["\x12", value_bytes | acc], acc_size + 1 + value_bytes_size}
-      end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:error_message, "invalid field value"), __STACKTRACE__
-    end
-
-    defp encode_rejected_log_records({acc, acc_size}, msg) do
-      if msg.rejected_log_records == 0 do
-        {acc, acc_size}
-      else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_int64(msg.rejected_log_records)
-        {["\b", value_bytes | acc], acc_size + 1 + value_bytes_size}
-      end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:rejected_log_records, "invalid field value"),
-                __STACKTRACE__
-    end
-
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
-    end
-  )
-
-  (
-    (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
-      def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
-      end
-
-      (
-        @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(
-            bytes,
-            struct(
-              OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsPartialSuccess
-            )
-          )
-        end
-      )
-    )
-
-    (
-      @spec parse_key_value(binary(), struct()) :: struct()
-      defp parse_key_value(<<>>, msg) do
-        msg
-      end
-
-      defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
-
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
-
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
-
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
-
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
-
-            <<2::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-              {[error_message: Protox.Decode.validate_string!(delimited)], rest}
-
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {value, rest} = Protox.Decode.parse_int64(bytes)
-              {[rejected_log_records: value], rest}
-
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
-
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
-      end
-    )
-  )
-
-  (
-    @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
-
-    @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
-
-    @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
-  )
-
-  (
-    @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
-            | {:error, :no_such_field | :no_default_value}
-    def default(:error_message) do
-      {:ok, ""}
-    end
-
-    def default(:rejected_log_records) do
-      {:ok, 0}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
-  )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        error_message: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: ""},
-          label: :optional,
-          name: :error_message,
-          tag: 2,
-          type: :string
-        },
-        rejected_log_records: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: 0},
-          label: :optional,
-          name: :rejected_log_records,
-          tag: 1,
-          type: :int64
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: "OpenTelemetry.Proto.Collector.Logs.V1",
-        deprecated: nil,
-        go_package: "go.opentelemetry.io/proto/otlp/collector/logs/v1",
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "LogsServiceProto",
-        java_package: "io.opentelemetry.proto.collector.logs.v1",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name: OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsPartialSuccess,
-      syntax: :proto3
-    }
-  end
-end
-
 defmodule OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsServiceRequest do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
@@ -876,12 +519,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsSer
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -1134,12 +774,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Logs.V1.ResourceLogs do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -1318,464 +955,6 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Logs.V1.ResourceLogs do
   end
 end
 
-defmodule OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse do
-  @moduledoc false
-  if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
-  else
-    raise "This code was generated with protox 2 but the runtime is using an older version of protox."
-  end
-
-  @type t :: %__MODULE__{
-          partial_success:
-            OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsPartialSuccess.t()
-            | nil,
-          __uf__: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-        }
-  defstruct partial_success: nil, __uf__: []
-
-  (
-    (
-      @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
-      def encode(msg) do
-        msg |> encode!() |> Tuple.insert_at(0, :ok)
-      rescue
-        e in [Protox.EncodingError, Protox.RequiredFieldsError] -> {:error, e}
-      end
-
-      @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
-      def encode!(msg) do
-        {_acc = [], _acc_size = 0} |> encode_partial_success(msg) |> encode_unknown_fields(msg)
-      end
-    )
-
-    defp encode_partial_success({acc, acc_size}, msg) do
-      if msg.partial_success == nil do
-        {acc, acc_size}
-      else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_message(msg.partial_success)
-        {["\n", value_bytes | acc], acc_size + 1 + value_bytes_size}
-      end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:partial_success, "invalid field value"), __STACKTRACE__
-    end
-
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
-    end
-  )
-
-  (
-    (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
-      def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
-      end
-
-      (
-        @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(
-            bytes,
-            struct(
-              OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse
-            )
-          )
-        end
-      )
-    )
-
-    (
-      @spec parse_key_value(binary(), struct()) :: struct()
-      defp parse_key_value(<<>>, msg) do
-        msg
-      end
-
-      defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
-
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
-
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
-
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
-
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
-
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-
-              {[
-                 partial_success:
-                   Protox.MergeMessage.merge(
-                     msg.partial_success,
-                     OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsPartialSuccess.decode!(
-                       delimited
-                     )
-                   )
-               ], rest}
-
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
-
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
-      end
-    )
-  )
-
-  (
-    @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
-
-    @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
-
-    @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
-  )
-
-  (
-    @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
-            | {:error, :no_such_field | :no_default_value}
-    def default(:partial_success) do
-      {:ok, nil}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
-  )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        partial_success: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: nil},
-          label: :optional,
-          name: :partial_success,
-          tag: 1,
-          type:
-            {:message,
-             OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsPartialSuccess}
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: "OpenTelemetry.Proto.Collector.Logs.V1",
-        deprecated: nil,
-        go_package: "go.opentelemetry.io/proto/otlp/collector/logs/v1",
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "LogsServiceProto",
-        java_package: "io.opentelemetry.proto.collector.logs.v1",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name: OtelMetricExporter.Opentelemetry.Proto.Collector.Logs.V1.ExportLogsServiceResponse,
-      syntax: :proto3
-    }
-  end
-end
-
-defmodule OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsPartialSuccess do
-  @moduledoc false
-  if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
-  else
-    raise "This code was generated with protox 2 but the runtime is using an older version of protox."
-  end
-
-  @type t :: %__MODULE__{
-          error_message: String.t(),
-          rejected_data_points: integer(),
-          __uf__: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-        }
-  defstruct error_message: "", rejected_data_points: 0, __uf__: []
-
-  (
-    (
-      @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
-      def encode(msg) do
-        msg |> encode!() |> Tuple.insert_at(0, :ok)
-      rescue
-        e in [Protox.EncodingError, Protox.RequiredFieldsError] -> {:error, e}
-      end
-
-      @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
-      def encode!(msg) do
-        {_acc = [], _acc_size = 0}
-        |> encode_error_message(msg)
-        |> encode_rejected_data_points(msg)
-        |> encode_unknown_fields(msg)
-      end
-    )
-
-    defp encode_error_message({acc, acc_size}, msg) do
-      if msg.error_message == "" do
-        {acc, acc_size}
-      else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_string(msg.error_message)
-        {["\x12", value_bytes | acc], acc_size + 1 + value_bytes_size}
-      end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:error_message, "invalid field value"), __STACKTRACE__
-    end
-
-    defp encode_rejected_data_points({acc, acc_size}, msg) do
-      if msg.rejected_data_points == 0 do
-        {acc, acc_size}
-      else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_int64(msg.rejected_data_points)
-        {["\b", value_bytes | acc], acc_size + 1 + value_bytes_size}
-      end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:rejected_data_points, "invalid field value"),
-                __STACKTRACE__
-    end
-
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
-    end
-  )
-
-  (
-    (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
-      def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
-      end
-
-      (
-        @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(
-            bytes,
-            struct(
-              OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsPartialSuccess
-            )
-          )
-        end
-      )
-    )
-
-    (
-      @spec parse_key_value(binary(), struct()) :: struct()
-      defp parse_key_value(<<>>, msg) do
-        msg
-      end
-
-      defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
-
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
-
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
-
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
-
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
-
-            <<2::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-              {[error_message: Protox.Decode.validate_string!(delimited)], rest}
-
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {value, rest} = Protox.Decode.parse_int64(bytes)
-              {[rejected_data_points: value], rest}
-
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
-
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
-      end
-    )
-  )
-
-  (
-    @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
-
-    @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
-
-    @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
-  )
-
-  (
-    @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
-            | {:error, :no_such_field | :no_default_value}
-    def default(:error_message) do
-      {:ok, ""}
-    end
-
-    def default(:rejected_data_points) do
-      {:ok, 0}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
-  )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        error_message: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: ""},
-          label: :optional,
-          name: :error_message,
-          tag: 2,
-          type: :string
-        },
-        rejected_data_points: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: 0},
-          label: :optional,
-          name: :rejected_data_points,
-          tag: 1,
-          type: :int64
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: "OpenTelemetry.Proto.Collector.Metrics.V1",
-        deprecated: nil,
-        go_package: "go.opentelemetry.io/proto/otlp/collector/metrics/v1",
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "MetricsServiceProto",
-        java_package: "io.opentelemetry.proto.collector.metrics.v1",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name:
-        OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsPartialSuccess,
-      syntax: :proto3
-    }
-  end
-end
-
 defmodule OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceRequest do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
@@ -1861,12 +1040,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetr
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -2120,12 +1296,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ResourceMetrics do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -2308,225 +1481,6 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ResourceMetrics do
   end
 end
 
-defmodule OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse do
-  @moduledoc false
-  if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
-  else
-    raise "This code was generated with protox 2 but the runtime is using an older version of protox."
-  end
-
-  @type t :: %__MODULE__{
-          partial_success:
-            OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsPartialSuccess.t()
-            | nil,
-          __uf__: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-        }
-  defstruct partial_success: nil, __uf__: []
-
-  (
-    (
-      @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
-      def encode(msg) do
-        msg |> encode!() |> Tuple.insert_at(0, :ok)
-      rescue
-        e in [Protox.EncodingError, Protox.RequiredFieldsError] -> {:error, e}
-      end
-
-      @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
-      def encode!(msg) do
-        {_acc = [], _acc_size = 0} |> encode_partial_success(msg) |> encode_unknown_fields(msg)
-      end
-    )
-
-    defp encode_partial_success({acc, acc_size}, msg) do
-      if msg.partial_success == nil do
-        {acc, acc_size}
-      else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_message(msg.partial_success)
-        {["\n", value_bytes | acc], acc_size + 1 + value_bytes_size}
-      end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:partial_success, "invalid field value"), __STACKTRACE__
-    end
-
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
-    end
-  )
-
-  (
-    (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
-      def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
-      end
-
-      (
-        @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(
-            bytes,
-            struct(
-              OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse
-            )
-          )
-        end
-      )
-    )
-
-    (
-      @spec parse_key_value(binary(), struct()) :: struct()
-      defp parse_key_value(<<>>, msg) do
-        msg
-      end
-
-      defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
-
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
-
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
-
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
-
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
-
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-
-              {[
-                 partial_success:
-                   Protox.MergeMessage.merge(
-                     msg.partial_success,
-                     OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsPartialSuccess.decode!(
-                       delimited
-                     )
-                   )
-               ], rest}
-
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
-
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
-      end
-    )
-  )
-
-  (
-    @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
-
-    @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
-
-    @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
-  )
-
-  (
-    @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
-            | {:error, :no_such_field | :no_default_value}
-    def default(:partial_success) do
-      {:ok, nil}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
-  )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        partial_success: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: nil},
-          label: :optional,
-          name: :partial_success,
-          tag: 1,
-          type:
-            {:message,
-             OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsPartialSuccess}
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: "OpenTelemetry.Proto.Collector.Metrics.V1",
-        deprecated: nil,
-        go_package: "go.opentelemetry.io/proto/otlp/collector/metrics/v1",
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "MetricsServiceProto",
-        java_package: "io.opentelemetry.proto.collector.metrics.v1",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name:
-        OtelMetricExporter.Opentelemetry.Proto.Collector.Metrics.V1.ExportMetricsServiceResponse,
-      syntax: :proto3
-    }
-  end
-end
-
 defmodule OtelMetricExporter.Opentelemetry.Proto.Common.V1.AnyValue do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
@@ -2627,12 +1581,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Common.V1.AnyValue do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -2989,12 +1940,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Common.V1.ArrayValue do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -3215,12 +2163,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Common.V1.KeyValueList do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -3488,12 +2433,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Common.V1.InstrumentationScope 
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -3769,12 +2711,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Common.V1.KeyValue do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -4174,12 +3113,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Logs.V1.LogRecord do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -4501,229 +3437,6 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Logs.V1.LogRecord do
   end
 end
 
-defmodule OtelMetricExporter.Opentelemetry.Proto.Logs.V1.LogsData do
-  @moduledoc false
-  if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
-  else
-    raise "This code was generated with protox 2 but the runtime is using an older version of protox."
-  end
-
-  @type t :: %__MODULE__{
-          resource_logs: [OtelMetricExporter.Opentelemetry.Proto.Logs.V1.ResourceLogs.t()],
-          __uf__: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-        }
-  defstruct resource_logs: [], __uf__: []
-
-  (
-    (
-      @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
-      def encode(msg) do
-        msg |> encode!() |> Tuple.insert_at(0, :ok)
-      rescue
-        e in [Protox.EncodingError, Protox.RequiredFieldsError] -> {:error, e}
-      end
-
-      @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
-      def encode!(msg) do
-        {_acc = [], _acc_size = 0} |> encode_resource_logs(msg) |> encode_unknown_fields(msg)
-      end
-    )
-
-    defp encode_resource_logs({acc, acc_size}, msg) do
-      case msg.resource_logs do
-        [] ->
-          {acc, acc_size}
-
-        values ->
-          {value_bytes, value_size} =
-            (
-              {value_bytes, value_size} =
-                Enum.reduce(values, {_local_acc = [], _local_acc_size = 0}, fn value,
-                                                                               {local_acc,
-                                                                                local_acc_size} ->
-                  {value_bytes, value_bytes_size} = Protox.Encode.encode_message(value)
-                  {[value_bytes, "\n" | local_acc], local_acc_size + 1 + value_bytes_size}
-                end)
-
-              {Enum.reverse(value_bytes), value_size}
-            )
-
-          {[value_bytes | acc], acc_size + value_size}
-      end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:resource_logs, "invalid field value"), __STACKTRACE__
-    end
-
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
-    end
-  )
-
-  (
-    (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
-      def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
-      end
-
-      (
-        @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(bytes, struct(OtelMetricExporter.Opentelemetry.Proto.Logs.V1.LogsData))
-        end
-      )
-    )
-
-    (
-      @spec parse_key_value(binary(), struct()) :: struct()
-      defp parse_key_value(<<>>, msg) do
-        msg
-      end
-
-      defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
-
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
-
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
-
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
-
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
-
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-
-              {[
-                 resource_logs:
-                   msg.resource_logs ++
-                     [
-                       OtelMetricExporter.Opentelemetry.Proto.Logs.V1.ResourceLogs.decode!(
-                         delimited
-                       )
-                     ]
-               ], rest}
-
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
-
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
-      end
-    )
-  )
-
-  (
-    @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
-
-    @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
-
-    @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
-  )
-
-  (
-    @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
-            | {:error, :no_such_field | :no_default_value}
-    def default(:resource_logs) do
-      {:error, :no_default_value}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
-  )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        resource_logs: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: :unpacked,
-          label: :repeated,
-          name: :resource_logs,
-          tag: 1,
-          type: {:message, OtelMetricExporter.Opentelemetry.Proto.Logs.V1.ResourceLogs}
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: "OpenTelemetry.Proto.Logs.V1",
-        deprecated: nil,
-        go_package: "go.opentelemetry.io/proto/otlp/logs/v1",
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "LogsProto",
-        java_package: "io.opentelemetry.proto.logs.v1",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name: OtelMetricExporter.Opentelemetry.Proto.Logs.V1.LogsData,
-      syntax: :proto3
-    }
-  end
-end
-
 defmodule OtelMetricExporter.Opentelemetry.Proto.Resource.V1.Resource do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
@@ -4826,12 +3539,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Resource.V1.Resource do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -5099,12 +3809,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Logs.V1.ScopeLogs do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -5430,12 +4137,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.Exemplar do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -5768,12 +4472,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ExponentialHistogram
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -6241,12 +4942,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ExponentialHistogram
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -6741,12 +5439,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ExponentialHistogram
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -6986,12 +5681,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.Gauge do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -7305,12 +5997,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.NumberDataPoint do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -7666,12 +6355,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.Histogram do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -8118,12 +6804,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.HistogramDataPoint d
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -8622,12 +7305,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.Metric do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -9121,12 +7801,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.Sum do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -9383,12 +8060,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.Summary do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -9526,234 +8200,6 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.Summary do
   end
 end
 
-defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.MetricsData do
-  @moduledoc false
-  if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
-  else
-    raise "This code was generated with protox 2 but the runtime is using an older version of protox."
-  end
-
-  @type t :: %__MODULE__{
-          resource_metrics: [
-            OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ResourceMetrics.t()
-          ],
-          __uf__: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-        }
-  defstruct resource_metrics: [], __uf__: []
-
-  (
-    (
-      @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
-      def encode(msg) do
-        msg |> encode!() |> Tuple.insert_at(0, :ok)
-      rescue
-        e in [Protox.EncodingError, Protox.RequiredFieldsError] -> {:error, e}
-      end
-
-      @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
-      def encode!(msg) do
-        {_acc = [], _acc_size = 0} |> encode_resource_metrics(msg) |> encode_unknown_fields(msg)
-      end
-    )
-
-    defp encode_resource_metrics({acc, acc_size}, msg) do
-      case msg.resource_metrics do
-        [] ->
-          {acc, acc_size}
-
-        values ->
-          {value_bytes, value_size} =
-            (
-              {value_bytes, value_size} =
-                Enum.reduce(values, {_local_acc = [], _local_acc_size = 0}, fn value,
-                                                                               {local_acc,
-                                                                                local_acc_size} ->
-                  {value_bytes, value_bytes_size} = Protox.Encode.encode_message(value)
-                  {[value_bytes, "\n" | local_acc], local_acc_size + 1 + value_bytes_size}
-                end)
-
-              {Enum.reverse(value_bytes), value_size}
-            )
-
-          {[value_bytes | acc], acc_size + value_size}
-      end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:resource_metrics, "invalid field value"), __STACKTRACE__
-    end
-
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
-    end
-  )
-
-  (
-    (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
-      def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
-      end
-
-      (
-        @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(
-            bytes,
-            struct(OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.MetricsData)
-          )
-        end
-      )
-    )
-
-    (
-      @spec parse_key_value(binary(), struct()) :: struct()
-      defp parse_key_value(<<>>, msg) do
-        msg
-      end
-
-      defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
-
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
-
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
-
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
-
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
-
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-
-              {[
-                 resource_metrics:
-                   msg.resource_metrics ++
-                     [
-                       OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ResourceMetrics.decode!(
-                         delimited
-                       )
-                     ]
-               ], rest}
-
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
-
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
-      end
-    )
-  )
-
-  (
-    @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
-
-    @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
-
-    @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
-  )
-
-  (
-    @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
-            | {:error, :no_such_field | :no_default_value}
-    def default(:resource_metrics) do
-      {:error, :no_default_value}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
-  )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        resource_metrics: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: :unpacked,
-          label: :repeated,
-          name: :resource_metrics,
-          tag: 1,
-          type: {:message, OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ResourceMetrics}
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: "OpenTelemetry.Proto.Metrics.V1",
-        deprecated: nil,
-        go_package: "go.opentelemetry.io/proto/otlp/metrics/v1",
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "MetricsProto",
-        java_package: "io.opentelemetry.proto.metrics.v1",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name: OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.MetricsData,
-      syntax: :proto3
-    }
-  end
-end
-
 defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ScopeMetrics do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
@@ -9867,12 +8313,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.ScopeMetrics do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -10244,12 +8687,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.SummaryDataPoint do
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
@@ -10586,12 +9026,9 @@ defmodule OtelMetricExporter.Opentelemetry.Proto.Metrics.V1.SummaryDataPoint.Val
 
   (
     (
-      @spec decode(binary()) :: {:ok, t()} | {:error, any()}
+      @spec decode(binary()) :: t()
       def decode(bytes) do
-        {:ok, decode!(bytes)}
-      rescue
-        e in [Protox.DecodingError, Protox.IllegalTagError, Protox.RequiredFieldsError] ->
-          {:error, e}
+        decode!(bytes)
       end
 
       (
