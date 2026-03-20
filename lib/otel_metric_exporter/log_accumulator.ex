@@ -123,20 +123,26 @@ defmodule OtelMetricExporter.LogAccumulator do
 
   def handle_info({ref, result}, state)
       when is_map_key(state.pending_tasks, ref) do
+    Process.demonitor(ref, [:flush])
+
     if match?({:error, _}, result) do
       Logger.debug(
         "Error sending logs to #{state.api.config.otlp_endpoint}: #{inspect(elem(result, 1))}"
       )
     end
 
-    # Remove the task from the pending tasks map
-    {:noreply, state}
+    {:noreply, %{state | pending_tasks: Map.delete(state.pending_tasks, ref)}}
   end
 
   def handle_info({:DOWN, ref, :process, _, _}, state)
       when is_map_key(state.pending_tasks, ref) do
-    # Remove the task from the pending tasks map
     {:noreply, %{state | pending_tasks: Map.delete(state.pending_tasks, ref)}}
+  end
+
+  # Catch-all for stray messages (e.g. late :DOWN or task results after ref was
+  # already cleaned up by block_until_any_task_ready or a prior handler).
+  def handle_info(_msg, state) do
+    {:noreply, state}
   end
 
   def terminate(_reason, state) do
@@ -179,11 +185,10 @@ defmodule OtelMetricExporter.LogAccumulator do
     # from a task that we started
     receive do
       {ref, _result} when is_map_key(pending_tasks, ref) ->
-        # Remove the task from the pending tasks map
+        Process.demonitor(ref, [:flush])
         %{state | pending_tasks: Map.delete(pending_tasks, ref)}
 
       {:DOWN, ref, :process, _, _} when is_map_key(pending_tasks, ref) ->
-        # Remove the task from the pending tasks map
         %{state | pending_tasks: Map.delete(pending_tasks, ref)}
     end
   end
