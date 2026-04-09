@@ -112,6 +112,8 @@ defmodule OtelMetricExporter.MetricStore do
       [update_counter_op, update_sum_op],
       {ets_key, 0, 0}
     )
+
+    update_min_max(metrics_table, {generation, string_name, metric_type(metric), tags}, value)
   end
 
   def table_exists?(metrics_table) do
@@ -128,6 +130,32 @@ defmodule OtelMetricExporter.MetricStore do
       # Overflow bucket
       nil -> length(bucket_bounds)
       idx -> idx
+    end
+  end
+
+  defp update_min_max(metrics_table, base_key, value) do
+    min_key = Tuple.insert_at(base_key, tuple_size(base_key), :min)
+
+    unless :ets.insert_new(metrics_table, {min_key, value, nil}) do
+      case :ets.lookup(metrics_table, min_key) do
+        [{_, current, _}] when value < current ->
+          :ets.insert(metrics_table, {min_key, value, nil})
+
+        _ ->
+          :ok
+      end
+    end
+
+    max_key = Tuple.insert_at(base_key, tuple_size(base_key), :max)
+
+    unless :ets.insert_new(metrics_table, {max_key, value, nil}) do
+      case :ets.lookup(metrics_table, max_key) do
+        [{_, current, _}] when value > current ->
+          :ets.insert(metrics_table, {max_key, value, nil})
+
+        _ ->
+          :ok
+      end
     end
   end
 
@@ -314,6 +342,10 @@ defmodule OtelMetricExporter.MetricStore do
      %Histogram{
        data_points:
          Enum.map(values, fn {{from, to}, tags, bucket_values} ->
+           {min_value, _} = Map.get(bucket_values, :min, {nil, nil})
+           {max_value, _} = Map.get(bucket_values, :max, {nil, nil})
+           bucket_values = Map.drop(bucket_values, [:min, :max])
+
            {total_count, total_sum} =
              Enum.reduce(bucket_values, {0, 0.0}, fn {_, {count, sum}},
                                                      {total_count, total_sum} ->
@@ -330,7 +362,9 @@ defmodule OtelMetricExporter.MetricStore do
              count: total_count,
              sum: total_sum,
              bucket_counts: bucket_counts,
-             explicit_bounds: bucket_bounds
+             explicit_bounds: bucket_bounds,
+             min: min_value && min_value / 1,
+             max: max_value && max_value / 1
            }
          end),
        aggregation_temporality: :AGGREGATION_TEMPORALITY_CUMULATIVE

@@ -82,7 +82,7 @@ defmodule OtelMetricExporter.MetricStoreTest do
 
       assert %{
                {:distribution, "test.value"} => %{
-                 ^tags => %{0 => {1, 2}, 1 => {1, 3}, 2 => {2, 10}}
+                 ^tags => %{0 => {1, 2}, 1 => {1, 3}, 2 => {2, 10}, min: {2, nil}, max: {5, nil}}
                }
              } = metrics
     end
