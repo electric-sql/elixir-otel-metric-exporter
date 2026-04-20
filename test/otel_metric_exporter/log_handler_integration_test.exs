@@ -54,7 +54,7 @@ defmodule OtelMetricExporter.LogHandlerIntegrationTest do
   defp decode_request_body(body) do
     body
     |> :zlib.gunzip()
-    |> Protobuf.decode(ExportLogsServiceRequest)
+    |> Protox.decode!(ExportLogsServiceRequest)
   end
 
   # --- Test Cases Below ---

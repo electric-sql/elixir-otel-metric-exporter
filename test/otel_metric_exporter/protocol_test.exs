@@ -23,8 +23,8 @@ defmodule OtelMetricExporter.ProtocolTest do
 
       msg =
         Protocol.build_log_service_request(events)
-        |> Protobuf.encode_to_iodata()
-        |> IO.iodata_to_binary()
+        |> Protox.encode!()
+        |> then(fn {iodata, _size} -> IO.iodata_to_binary(iodata) end)
 
       assert is_binary(msg)
     end

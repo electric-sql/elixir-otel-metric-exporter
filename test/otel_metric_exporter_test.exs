@@ -116,6 +116,24 @@ defmodule OtelMetricExporterTest do
                63
     end
 
+    test "skips metrics with nil measurements" do
+      metrics = [
+        Telemetry.Metrics.sum("test.nil_measurement.value",
+          event_name: [:test, :nil_measurement]
+        )
+      ]
+
+      start_supervised!({OtelMetricExporter, @base_config ++ [metrics: metrics]})
+
+      # Execute event with a measurement key that doesn't match the metric name
+      :telemetry.execute([:test, :nil_measurement], %{other_key: 42}, %{})
+
+      Process.sleep(100)
+
+      metrics = OtelMetricExporter.MetricStore.get_metrics(@name)
+      assert metrics == %{}
+    end
+
     test "handles tag functions" do
       metrics = [
         Telemetry.Metrics.counter(

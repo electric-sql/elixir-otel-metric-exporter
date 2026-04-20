@@ -58,7 +58,7 @@ defmodule OtelMetricExporter.LogHandlerSupervisorTest do
       assert body != ""
 
       %ExportLogsServiceRequest{resource_logs: [%{scope_logs: [%{log_records: logs}]}]} =
-        body |> :zlib.gunzip() |> Protobuf.decode(ExportLogsServiceRequest)
+        body |> :zlib.gunzip() |> Protox.decode!(ExportLogsServiceRequest)
 
       assert length(logs) == 5
 
@@ -109,7 +109,7 @@ defmodule OtelMetricExporter.LogHandlerSupervisorTest do
       assert body != ""
 
       %ExportLogsServiceRequest{resource_logs: [%{scope_logs: [%{log_records: logs}]}]} =
-        body |> :zlib.gunzip() |> Protobuf.decode(ExportLogsServiceRequest)
+        body |> :zlib.gunzip() |> Protox.decode!(ExportLogsServiceRequest)
 
       assert length(logs) == 5
 

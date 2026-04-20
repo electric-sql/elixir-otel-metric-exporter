@@ -130,7 +130,7 @@ defmodule OtelMetricExporter.MetricStoreTest do
         assert body != ""
 
         # Decodes withouth raising
-        ExportMetricsServiceRequest.decode(body)
+        ExportMetricsServiceRequest.decode!(body)
 
         Plug.Conn.resp(conn, 200, "")
       end)
@@ -215,7 +215,7 @@ defmodule OtelMetricExporter.MetricStoreTest do
       # Second export succeeds and should include both generations
       Bypass.expect_once(bypass, "POST", "/v1/metrics", fn conn ->
         {:ok, body, conn} = Plug.Conn.read_body(conn)
-        metrics = ExportMetricsServiceRequest.decode(body)
+        metrics = ExportMetricsServiceRequest.decode!(body)
 
         # Verify that we have one metric with sum = 3 (1 from first generation + 2 from second)
         assert [%{scope_metrics: [%{metrics: [metric]}]}] = metrics.resource_metrics
