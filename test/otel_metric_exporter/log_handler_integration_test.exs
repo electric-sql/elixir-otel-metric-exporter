@@ -444,4 +444,37 @@ defmodule OtelMetricExporter.LogHandlerIntegrationTest do
              }
            ] = logs
   end
+
+  test "LogAccumulator survives repeated export failures", %{
+    bypass: bypass,
+    handler_id: handler_id,
+    config: initial_config
+  } do
+    # Configure with small buffer, single concurrent request, and no retries.
+    # This forces block_until_any_task_ready to be exercised, which is the
+    # code path that previously caused FunctionClauseError on stray :DOWN messages.
+    new_config = %{max_buffer_size: 1, debounce_ms: 5, otlp_concurrent_requests: 1, retry: false}
+    merged_config = Map.merge(initial_config, new_config)
+    :ok = :logger.set_handler_config(handler_id, %{config: merged_config})
+
+    # Return 500 for all requests so exports fail immediately (no retry)
+    Bypass.stub(bypass, "POST", "/v1/logs", fn conn ->
+      Plug.Conn.resp(conn, 500, "")
+    end)
+
+    # Send a burst of logs to trigger multiple export attempts.
+    # With max_buffer_size=1 and concurrent_requests=1, this will force
+    # the accumulator into block_until_any_task_ready repeatedly.
+    for i <- 1..5 do
+      Logger.info("failure-test-#{i}")
+      Process.sleep(10)
+    end
+
+    # Wait for tasks to complete
+    Process.sleep(200)
+
+    # Verify the handler is still alive by checking it's still registered
+    handlers = :logger.get_handler_ids()
+    assert handler_id in handlers, "LogAccumulator should still be alive after export failures"
+  end
 end
