@@ -191,7 +191,7 @@ defmodule OtelMetricExporter.MetricStoreTest do
       assert MetricStore.get_metrics(@name, 0) == metrics
     end
 
-    test "preserves metrics across generations on failed exports", %{
+    test "reaggregates metrics across generations on failed exports", %{
       bypass: bypass,
       store_config: config
     } do
@@ -212,29 +212,66 @@ defmodule OtelMetricExporter.MetricStoreTest do
       # Second generation
       MetricStore.write_metric(@name, metric, 2, tags)
 
-      # Second export succeeds and should include both generations
+      # Second export succeeds and should contain a single reaggregated data point
+      # spanning both generations (sum = 3) instead of one point per generation.
+      # This prevents the request payload from growing unboundedly across repeated
+      # export failures (see electric-sql/stratovolt#1455).
       Bypass.expect_once(bypass, "POST", "/v1/metrics", fn conn ->
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         metrics = ExportMetricsServiceRequest.decode(body)
 
-        # Verify that we have one metric with sum = 3 (1 from first generation + 2 from second)
         assert [%{scope_metrics: [%{metrics: [metric]}]}] = metrics.resource_metrics
 
-        assert {:sum, %{data_points: [point1, point2]}} = metric.data
-        assert {:as_int, 1} = point1.value
-        assert {:as_int, 2} = point2.value
-
-        assert point1.time_unix_nano < point2.time_unix_nano
-        assert point2.start_time_unix_nano > point1.time_unix_nano
+        assert {:sum, %{data_points: [point]}} = metric.data
+        assert {:as_int, 3} = point.value
+        assert point.start_time_unix_nano <= point.time_unix_nano
 
         Plug.Conn.resp(conn, 200, "")
       end)
 
       assert :ok = MetricStore.export_sync(@name)
 
-      # Both generations should be cleared after successful export
+      # All generations should be cleared after successful export
       assert MetricStore.get_metrics(@name, 0) == %{}
       assert MetricStore.get_metrics(@name, 1) == %{}
+      assert MetricStore.get_metrics(@name, 2) == %{}
+    end
+
+    test "reaggregation across failures keeps payload size bounded", %{
+      bypass: bypass,
+      store_config: config
+    } do
+      metric = Metrics.sum("test.sum")
+      tags = %{test: "value"}
+      start_supervised!({MetricStore, %{config | metrics: [metric]}})
+
+      # Simulate multiple consecutive export failures.
+      Bypass.expect(bypass, "POST", "/v1/metrics", fn conn ->
+        Plug.Conn.resp(conn, 500, "Internal Server Error")
+      end)
+
+      for i <- 1..5 do
+        MetricStore.write_metric(@name, metric, i, tags)
+        capture_log(fn -> MetricStore.export_sync(@name) end)
+      end
+
+      Bypass.down(bypass)
+      Bypass.up(bypass)
+
+      # Next successful export should contain exactly one data point with the
+      # cumulative sum, not five points.
+      Bypass.expect_once(bypass, "POST", "/v1/metrics", fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        metrics = ExportMetricsServiceRequest.decode(body)
+
+        assert [%{scope_metrics: [%{metrics: [metric]}]}] = metrics.resource_metrics
+        assert {:sum, %{data_points: [point]}} = metric.data
+        assert {:as_int, 15} = point.value
+
+        Plug.Conn.resp(conn, 200, "")
+      end)
+
+      assert :ok = MetricStore.export_sync(@name)
     end
   end
 end

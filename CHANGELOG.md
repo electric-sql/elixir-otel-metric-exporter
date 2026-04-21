@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Reaggregate pending metric data between failed exports so the payload size
+  stays bounded and does not trip the internal 20s send timeout under load
+
 ## [0.3.6] - 2025-04-08
 
 - Fix protobuf encoding of `:logger.report()` events
