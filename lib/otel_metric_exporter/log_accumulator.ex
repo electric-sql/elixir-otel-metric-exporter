@@ -139,6 +139,18 @@ defmodule OtelMetricExporter.LogAccumulator do
     {:noreply, %{state | pending_tasks: Map.delete(state.pending_tasks, ref)}}
   end
 
+  # Catch-all for unexpected messages. Without this, the process would crash on
+  # any stray message (e.g. a late task reply after the task ref was forgotten,
+  # or monitor/EXIT signals from unrelated processes), which would take down the
+  # logger handler. Log and carry on instead.
+  def handle_info(msg, state) do
+    Logger.debug(fn ->
+      "#{inspect(__MODULE__)} received unexpected message: #{inspect(msg)}"
+    end)
+
+    {:noreply, state}
+  end
+
   def terminate(_reason, state) do
     # Send any remaining logs if possible
     send_events_via_task(state)
