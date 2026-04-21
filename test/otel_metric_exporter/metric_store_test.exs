@@ -153,6 +153,33 @@ defmodule OtelMetricExporter.MetricStoreTest do
       assert MetricStore.get_metrics(@name, 0) == %{}
     end
 
+    test "exports :undefined last_value as a nil data point without crashing", %{
+      bypass: bypass,
+      store_config: config
+    } do
+      metric = Metrics.last_value("test.last_value.undefined")
+      tags = %{test: "value"}
+      start_supervised!({MetricStore, %{config | metrics: [metric]}})
+
+      Bypass.expect_once(bypass, "POST", "/v1/metrics", fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        decoded = ExportMetricsServiceRequest.decode(body)
+
+        assert [%{scope_metrics: [%{metrics: [exported]}]}] = decoded.resource_metrics
+        assert {:gauge, %{data_points: [point]}} = exported.data
+        # protobuf elides the nil inner value, so the oneof decodes as nil
+        assert point.value == nil
+
+        Plug.Conn.resp(conn, 200, "")
+      end)
+
+      # `:telemetry` emits `:undefined` for uninitialised values; previously this crashed the
+      # export pipeline with a FunctionClauseError in convert_value/2.
+      MetricStore.write_metric(@name, metric, :undefined, tags)
+
+      assert :ok = MetricStore.export_sync(@name)
+    end
+
     test "handles server errors gracefully", %{bypass: bypass, store_config: config} do
       metric = Metrics.sum("test.sum")
       tags = %{test: "value"}
