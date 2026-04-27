@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Check formatting
+    runs-on: ubuntu-24.04
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          version-type: strict
+          version-file: '.tool-versions'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-deps-${{ env.MIX_ENV }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-${{ env.MIX_ENV }}-${{ hashFiles('mix.lock') }}
+            ${{ runner.os }}-deps-${{ env.MIX_ENV }}
+            ${{ runner.os }}-deps
+
+      - name: Restore compiled code cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            _build/*/lib
+            !_build/*/lib/otel_metric_exporter
+          key: ${{ runner.os }}-build-${{ env.MIX_ENV }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.MIX_ENV }}-${{ hashFiles('mix.lock') }}
+            ${{ runner.os }}-build-${{ env.MIX_ENV }}
+            ${{ runner.os }}-build
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Check formatting
+        run: mix format --check-formatted
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-24.04
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          version-type: strict
+          version-file: '.tool-versions'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-deps-${{ env.MIX_ENV }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-${{ env.MIX_ENV }}-${{ hashFiles('mix.lock') }}
+            ${{ runner.os }}-deps-${{ env.MIX_ENV }}
+            ${{ runner.os }}-deps
+
+      - name: Restore compiled code cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            _build/*/lib
+            !_build/*/lib/otel_metric_exporter
+          key: ${{ runner.os }}-build-${{ env.MIX_ENV }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.MIX_ENV }}-${{ hashFiles('mix.lock') }}
+            ${{ runner.os }}-build-${{ env.MIX_ENV }}
+            ${{ runner.os }}-build
+
+      - name: Install dependencies
+        run: mix do deps.get + deps.compile
+
+      - name: Compile
+        run: mix compile
+
+      - name: Run tests
+        run: mix test
