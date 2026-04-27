@@ -127,8 +127,7 @@ defmodule OtelMetricExporter.OtelApi.ConfigTest do
                 otlp_endpoint: "http://localhost:4318",
                 otlp_headers: %{"key1" => "value1", "key2" => "value2"},
                 otlp_timeout: 10
-              },
-              %{}} =
+              }, %{}} =
                OtelMetricExporter.OtelApi.Config.validate_for_scope(
                  %{logs: %{exporter: :otlp}},
                  :logs
