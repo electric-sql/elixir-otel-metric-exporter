@@ -232,7 +232,16 @@ defmodule OtelMetricExporter.MetricStore do
         x -> x
       end
 
-    earliest_gen..current_gen//1
+    # If previous exports failed, there may be multiple pending generations
+    # accumulated in the ETS table. Reaggregate them into a single generation
+    # before building the payload so that the request contains at most one data
+    # point per metric/tag combination regardless of how many export attempts
+    # have failed previously. Without this, the payload grows linearly with
+    # every failed export and eventually trips the send timeout
+    # (see electric-sql/stratovolt#1455).
+    reaggregate_failed_generations(state, earliest_gen, current_gen)
+
+    earliest_gen..earliest_gen//1
     |> Enum.reduce(%{}, fn gen, acc ->
       {_, start, finish} = List.first(:ets.lookup(state.generations_table, gen), {nil, nil, nil})
 
@@ -259,18 +268,94 @@ defmodule OtelMetricExporter.MetricStore do
     end)
     |> case do
       :ok ->
-        # Clear exported metrics
-        for x <- earliest_gen..current_gen//1 do
-          :ets.match_delete(state.metrics_table, {{x, :_, :_, :_, :_}, :_, :_})
-          :ets.delete(state.generations_table, x)
-        end
-
+        # Clear the exported generation. After reaggregation all pending data
+        # lives in earliest_gen, so this is the only generation that needs
+        # clearing.
+        :ets.match_delete(state.metrics_table, {{earliest_gen, :_, :_, :_, :_}, :_, :_})
+        :ets.delete(state.generations_table, earliest_gen)
         :ok
 
       {:error, reason} ->
         Logger.error("Failed to export metrics: #{inspect(reason)}")
+        # The data is left in earliest_gen. The next export cycle will
+        # reaggregate it together with any newly-recorded metrics before
+        # attempting another send.
         {:error, reason}
     end
+  end
+
+  # Collapses generations in the range earliest_gen..current_gen into earliest_gen,
+  # merging ETS rows by (name, type, tags, bucket) key. Counters/sums/distribution
+  # bucket counts are added together, last_value keeps the newest value, and
+  # distribution min/max are merged with min/max. The generations_table entry for
+  # earliest_gen has its finish timestamp extended to that of current_gen.
+  defp reaggregate_failed_generations(%State{} = _state, earliest_gen, current_gen)
+       when earliest_gen == current_gen,
+       do: :ok
+
+  defp reaggregate_failed_generations(%State{} = state, earliest_gen, current_gen) do
+    for gen <- (earliest_gen + 1)..current_gen//1 do
+      rows = :ets.match_object(state.metrics_table, {{gen, :_, :_, :_, :_}, :_, :_})
+
+      for {{^gen, name, type, tags, bucket}, value, extra} <- rows do
+        target_key = {earliest_gen, name, type, tags, bucket}
+        merge_row(state.metrics_table, type, bucket, target_key, value, extra)
+      end
+
+      :ets.match_delete(state.metrics_table, {{gen, :_, :_, :_, :_}, :_, :_})
+    end
+
+    # Extend earliest generation's finish time to that of the last rotated generation
+    case :ets.lookup(state.generations_table, current_gen) do
+      [{_, _, finish}] when not is_nil(finish) ->
+        :ets.update_element(state.generations_table, earliest_gen, {3, finish})
+
+      _ ->
+        :ok
+    end
+
+    # Drop the now-empty generation entries
+    for gen <- (earliest_gen + 1)..current_gen//1 do
+      :ets.delete(state.generations_table, gen)
+    end
+
+    :ok
+  end
+
+  # Counter/sum: add values.
+  defp merge_row(table, type, nil, target_key, value, _extra) when type in [:counter, :sum] do
+    :ets.update_counter(table, target_key, value, {target_key, 0, nil})
+  end
+
+  # Last value: newest generation wins. Since we iterate from older to newer,
+  # simply overwriting is correct.
+  defp merge_row(table, :last_value, nil, target_key, value, _extra) do
+    :ets.insert(table, {target_key, value, nil})
+  end
+
+  # Distribution min/max sentinel rows: take min or max as appropriate.
+  defp merge_row(table, :distribution, :min, target_key, value, _extra) do
+    case :ets.lookup(table, target_key) do
+      [{_, current, _}] when current <= value -> :ok
+      _ -> :ets.insert(table, {target_key, value, nil})
+    end
+  end
+
+  defp merge_row(table, :distribution, :max, target_key, value, _extra) do
+    case :ets.lookup(table, target_key) do
+      [{_, current, _}] when current >= value -> :ok
+      _ -> :ets.insert(table, {target_key, value, nil})
+    end
+  end
+
+  # Distribution bucket row: add count and sum.
+  defp merge_row(table, :distribution, _bucket_idx, target_key, count, sum) do
+    :ets.update_counter(
+      table,
+      target_key,
+      [{2, count}, {3, sum}],
+      {target_key, 0, 0}
+    )
   end
 
   defp convert_metric(
