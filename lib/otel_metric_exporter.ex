@@ -138,7 +138,9 @@ defmodule OtelMetricExporter do
         tags = extract_tags(metric, metadata)
 
         metric_name = "#{Enum.join(metric.name, ".")}"
-        MetricStore.write_metric(name, metric, metric_name, value, tags)
+        if not is_nil(value) do
+          MetricStore.write_metric(name, metric, metric_name, value, tags)
+        end
       end
     end
   rescue
