@@ -58,6 +58,19 @@ defmodule OtelMetricExporter do
                         default: :timer.minutes(1),
                         doc: "Period in milliseconds between metric exports."
                       ],
+                      temporality: [
+                        type: {:in, [:cumulative, :delta]},
+                        default: :cumulative,
+                        doc: """
+                        Aggregation temporality reported for counter, sum and distribution metrics.
+                        Each export carries only the values recorded since the previous successful
+                        export, with a start time at the beginning of that window, so the data points
+                        are deltas. `:delta` labels them that way, which is what backends that convert
+                        cumulative series to deltas themselves (e.g. Datadog, New Relic) need in order
+                        to keep histograms. `:cumulative` keeps the label this library has always sent,
+                        which Prometheus accepts by treating every export as a counter reset.
+                        """
+                      ],
                       name: [
                         type: :atom,
                         default: :otel_metric_exporter,

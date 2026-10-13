@@ -225,6 +225,7 @@ defmodule OtelMetricExporter.MetricStore do
 
   defp export_metrics(%State{} = state) do
     current_gen = rotate_generation(state)
+    temporality = aggregation_temporality(Map.get(state.config, :temporality, :cumulative))
 
     earliest_gen =
       case :ets.first(state.generations_table) do
@@ -246,7 +247,7 @@ defmodule OtelMetricExporter.MetricStore do
       metric =
         Enum.find(state.metrics, &(Enum.join(&1.name, ".") == name and metric_type(&1) == type))
 
-      convert_metric(metric, tagged_values)
+      convert_metric(metric, tagged_values, temporality)
     end)
     |> then(fn payload ->
       task = Task.async(fn -> OtelApi.send_metrics(state.api, payload) end)
@@ -275,17 +276,21 @@ defmodule OtelMetricExporter.MetricStore do
 
   defp convert_metric(
          %{name: name, description: description, unit: unit} = metric,
-         values
+         values,
+         temporality
        ) do
     %Metric{
       name: Enum.join(name, "."),
       description: description,
       unit: convert_unit(unit),
-      data: convert_data(metric, values)
+      data: convert_data(metric, values, temporality)
     }
   end
 
-  defp convert_data(%Metrics.Counter{}, values) do
+  defp aggregation_temporality(:cumulative), do: :AGGREGATION_TEMPORALITY_CUMULATIVE
+  defp aggregation_temporality(:delta), do: :AGGREGATION_TEMPORALITY_DELTA
+
+  defp convert_data(%Metrics.Counter{}, values, temporality) do
     {:sum,
      %Sum{
        data_points:
@@ -297,12 +302,12 @@ defmodule OtelMetricExporter.MetricStore do
              value: convert_value(value, :int)
            }
          end),
-       aggregation_temporality: :AGGREGATION_TEMPORALITY_CUMULATIVE,
+       aggregation_temporality: temporality,
        is_monotonic: true
      }}
   end
 
-  defp convert_data(%Metrics.Sum{}, values) do
+  defp convert_data(%Metrics.Sum{}, values, temporality) do
     {:sum,
      %Sum{
        data_points:
@@ -314,12 +319,12 @@ defmodule OtelMetricExporter.MetricStore do
              value: convert_value(value, :int)
            }
          end),
-       aggregation_temporality: :AGGREGATION_TEMPORALITY_CUMULATIVE,
+       aggregation_temporality: temporality,
        is_monotonic: false
      }}
   end
 
-  defp convert_data(%Metrics.LastValue{}, values) do
+  defp convert_data(%Metrics.LastValue{}, values, _temporality) do
     {:gauge,
      %Gauge{
        data_points:
@@ -334,7 +339,7 @@ defmodule OtelMetricExporter.MetricStore do
      }}
   end
 
-  defp convert_data(%Metrics.Distribution{reporter_options: opts}, values) do
+  defp convert_data(%Metrics.Distribution{reporter_options: opts}, values, temporality) do
     bucket_bounds = Keyword.get(opts, :buckets, @default_buckets)
     total_bucket_bounds = length(bucket_bounds)
 
@@ -367,7 +372,7 @@ defmodule OtelMetricExporter.MetricStore do
              max: max_value && max_value / 1
            }
          end),
-       aggregation_temporality: :AGGREGATION_TEMPORALITY_CUMULATIVE
+       aggregation_temporality: temporality
      }}
   end
 

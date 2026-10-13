@@ -153,6 +153,60 @@ defmodule OtelMetricExporter.MetricStoreTest do
       assert MetricStore.get_metrics(@name, 0) == %{}
     end
 
+    for {temporality, expected} <- [
+          {nil, :AGGREGATION_TEMPORALITY_CUMULATIVE},
+          {:cumulative, :AGGREGATION_TEMPORALITY_CUMULATIVE},
+          {:delta, :AGGREGATION_TEMPORALITY_DELTA}
+        ] do
+      test "labels sums and histograms #{expected} when temporality is #{inspect(temporality)}",
+           %{bypass: bypass, store_config: config} do
+        metrics =
+          [counter, sum, last_value, distribution] = [
+            Metrics.counter("test.counter"),
+            Metrics.sum("test.sum"),
+            Metrics.last_value("test.last_value"),
+            Metrics.distribution("test.distribution")
+          ]
+
+        config =
+          case unquote(temporality) do
+            nil -> config
+            temporality -> Map.put(config, :temporality, temporality)
+          end
+
+        start_supervised!({MetricStore, %{config | metrics: metrics}})
+        test_pid = self()
+
+        Bypass.expect_once(bypass, "POST", "/v1/metrics", fn conn ->
+          {:ok, body, conn} = Plug.Conn.read_body(conn)
+          send(test_pid, {:exported, ExportMetricsServiceRequest.decode(body)})
+          Plug.Conn.resp(conn, 200, "")
+        end)
+
+        for metric <- [counter, sum, last_value, distribution] do
+          MetricStore.write_metric(@name, metric, 3, %{})
+        end
+
+        assert :ok = MetricStore.export_sync(@name)
+        assert_receive {:exported, request}
+
+        [%{scope_metrics: [%{metrics: exported}]}] = request.resource_metrics
+        data = Map.new(exported, &{&1.name, &1.data})
+
+        assert {:sum, %{aggregation_temporality: unquote(expected), is_monotonic: true}} =
+                 data["test.counter"]
+
+        assert {:sum, %{aggregation_temporality: unquote(expected), is_monotonic: false}} =
+                 data["test.sum"]
+
+        assert {:histogram, %{aggregation_temporality: unquote(expected)}} =
+                 data["test.distribution"]
+
+        # Gauges have no temporality.
+        assert {:gauge, _} = data["test.last_value"]
+      end
+    end
+
     test "exports nil and :undefined last_value as a nil data point without crashing", %{
       bypass: bypass,
       store_config: config
