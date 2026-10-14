@@ -24,10 +24,11 @@ defmodule OtelMetricExporter.OtlpUtils do
   end
 
   def to_kv_value(value) when is_binary(value), do: {:string_value, value}
+  # Before is_atom/1: true and false are atoms.
+  def to_kv_value(value) when is_boolean(value), do: {:bool_value, value}
   def to_kv_value(value) when is_atom(value), do: {:string_value, to_string(value)}
   def to_kv_value(value) when is_integer(value), do: {:int_value, value}
   def to_kv_value(value) when is_float(value), do: {:double_value, value}
-  def to_kv_value(value) when is_boolean(value), do: {:bool_value, value}
   def to_kv_value(value) when is_struct(value), do: {:string_value, inspect(value)}
 
   def to_kv_value([{k, _} | _] = value) when is_atom(k),

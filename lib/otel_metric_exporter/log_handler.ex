@@ -41,8 +41,6 @@ defmodule OtelMetricExporter.LogHandler do
   alias OtelMetricExporter.LogAccumulator
   alias OtelMetricExporter.LogHandlerSupervisor
 
-  require Logger
-
   @behaviour :logger_handler
 
   @olp_config_keys [
